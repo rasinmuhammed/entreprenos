@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { BusinessContext, WidgetData, BoardRoomState, ChatMessage, AgentPersona, ResearchGathered, ConsultationQuestion, BusinessProfile, View, LogEntry, LogType, CompetitorEntity, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, SimulationState, CrisisEvent, SimulationResult, CrisisChoice, AccessibilityMode, LiveConnectionState } from '../types';
+import { BusinessContext, WidgetData, BoardRoomState, ChatMessage, AgentPersona, ResearchGathered, ConsultationQuestion, BusinessProfile, View, LogEntry, LogType, CompetitorEntity, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, SimulationState, CrisisEvent, SimulationResult, CrisisChoice, AccessibilityMode, LiveConnectionState, InventoryAlert, FocusSession, Email, MicroTask, SentimentFrame, SpatialChatState, SpatialMessage } from '../types';
 
 interface AppState {
   hasStartedOnboarding: boolean;
@@ -13,6 +13,23 @@ interface AppState {
   // Accessibility & Live State
   accessibilityMode: AccessibilityMode;
   liveState: LiveConnectionState;
+
+  // Sentiment HUD (Deaf)
+  sentimentStream: SentimentFrame[];
+
+  // Spatial Chat (Blind)
+  spatialChat: SpatialChatState;
+
+  // Inventory Sonar
+  inventoryAlerts: InventoryAlert[];
+
+  // Focus Session (ADHD)
+  focusSession: FocusSession;
+
+  // Email Agent
+  emails: Email[];
+  isProcessingEmails: boolean;
+  selectedEmailId: string | null;
 
   // Boardroom
   boardRoom: BoardRoomState;
@@ -63,6 +80,30 @@ interface AppState {
   appendWidgets: (newWidgets: WidgetData[]) => void;
   updateWidgetContent: (id: string, newContent: any) => void;
   setView: (view: View) => void;
+
+  // Sentiment Actions
+  addSentimentFrame: (frame: SentimentFrame) => void;
+  clearSentimentStream: () => void;
+
+  // Spatial Chat Actions
+  setSpatialImage: (imageUrl: string) => void;
+  addSpatialMessage: (msg: SpatialMessage) => void;
+  setSpatialProcessing: (isProcessing: boolean) => void;
+
+  // Inventory Actions
+  setInventoryAlerts: (alerts: InventoryAlert[]) => void;
+
+  // Focus Actions
+  startFocusSession: (taskName: string, microSteps: MicroTask[]) => void;
+  completeMicroStep: () => void;
+  endFocusSession: () => void;
+
+  // Email Actions
+  setEmails: (emails: Email[]) => void;
+  setProcessingEmails: (isProcessing: boolean) => void;
+  setSelectedEmailId: (id: string | null) => void;
+  markEmailRead: (id: string) => void;
+  archiveEmail: (id: string) => void;
 
   // Journal Actions
   addLogEntry: (entry: LogEntry) => void;
@@ -128,6 +169,30 @@ export const useAppStore = create<AppState>((set) => ({
     isThinking: false,
     volumeLevel: 0
   },
+
+  sentimentStream: [],
+
+  spatialChat: {
+    isActive: false,
+    imageUrl: null,
+    messages: [],
+    isProcessing: false
+  },
+
+  inventoryAlerts: [],
+
+  focusSession: {
+    isActive: false,
+    taskName: '',
+    microSteps: [],
+    currentStepIndex: 0,
+    streak: 0,
+    startTime: 0
+  },
+
+  emails: [],
+  isProcessingEmails: false,
+  selectedEmailId: null,
   
   boardRoom: {
     isActive: false,
@@ -195,6 +260,87 @@ export const useAppStore = create<AppState>((set) => ({
 
   setView: (view) => set({ currentView: view }),
 
+  // Sentiment Actions
+  addSentimentFrame: (frame) => set((state) => ({
+    sentimentStream: [...state.sentimentStream.slice(-5), frame] // Keep last 5 frames
+  })),
+  clearSentimentStream: () => set({ sentimentStream: [] }),
+
+  // Spatial Chat Actions
+  setSpatialImage: (imageUrl) => set((state) => ({
+    spatialChat: { ...state.spatialChat, imageUrl, isActive: true }
+  })),
+  addSpatialMessage: (msg) => set((state) => ({
+    spatialChat: { ...state.spatialChat, messages: [...state.spatialChat.messages, msg] }
+  })),
+  setSpatialProcessing: (isProcessing) => set((state) => ({
+    spatialChat: { ...state.spatialChat, isProcessing }
+  })),
+
+  // Inventory
+  setInventoryAlerts: (alerts) => set({ inventoryAlerts: alerts }),
+
+  // Focus
+  startFocusSession: (taskName, microSteps) => set({
+    focusSession: {
+      isActive: true,
+      taskName,
+      microSteps,
+      currentStepIndex: 0,
+      streak: 0,
+      startTime: Date.now()
+    }
+  }),
+  completeMicroStep: () => set((state) => {
+     const nextIndex = state.focusSession.currentStepIndex + 1;
+     const isFinished = nextIndex >= state.focusSession.microSteps.length;
+     
+     const updatedSteps = [...state.focusSession.microSteps];
+     updatedSteps[state.focusSession.currentStepIndex] = { ...updatedSteps[state.focusSession.currentStepIndex], isComplete: true };
+
+     if (isFinished) {
+       return {
+         focusSession: {
+           ...state.focusSession,
+           microSteps: updatedSteps,
+           isActive: false, 
+           streak: state.focusSession.streak + 1
+         }
+       };
+     }
+
+     return {
+       focusSession: {
+         ...state.focusSession,
+         microSteps: updatedSteps,
+         currentStepIndex: nextIndex,
+         streak: state.focusSession.streak + 1
+       }
+     };
+  }),
+  endFocusSession: () => set({ 
+    focusSession: { 
+      isActive: false, 
+      taskName: '', 
+      microSteps: [], 
+      currentStepIndex: 0, 
+      streak: 0,
+      startTime: 0
+    } 
+  }),
+
+  // Emails
+  setEmails: (emails) => set({ emails }),
+  setProcessingEmails: (isProcessing) => set({ isProcessingEmails: isProcessing }),
+  setSelectedEmailId: (id) => set({ selectedEmailId: id }),
+  markEmailRead: (id) => set((state) => ({
+    emails: state.emails.map(e => e.id === id ? { ...e, isRead: true } : e)
+  })),
+  archiveEmail: (id) => set((state) => ({
+    emails: state.emails.filter(e => e.id !== id),
+    selectedEmailId: state.selectedEmailId === id ? null : state.selectedEmailId
+  })),
+
   addLogEntry: (entry) => set((state) => ({ journal: [entry, ...state.journal] })),
   deleteLogEntry: (id) => set((state) => ({ journal: state.journal.filter(j => j.id !== id) })),
 
@@ -256,7 +402,7 @@ export const useAppStore = create<AppState>((set) => ({
   setBusinessProfile: (profile) => set((state) => ({ research: { ...state.research, profile } })),
 
   startBoardRoomSession: (topic) => set({
-    currentView: View.BOARDROOM, // Auto switch view
+    currentView: View.BOARDROOM,
     boardRoom: {
       isActive: true,
       topic,
@@ -318,6 +464,13 @@ export const useAppStore = create<AppState>((set) => ({
     isGeneratingCampaign: false,
     simulation: { isActive: false, currentEvent: null, history: [], cashBalance: 0, reputationScore: 100, month: 1 },
     isSimulating: false,
-    isVisionModalOpen: false
+    isVisionModalOpen: false,
+    inventoryAlerts: [],
+    focusSession: { isActive: false, taskName: '', microSteps: [], currentStepIndex: 0, streak: 0, startTime: 0 },
+    emails: [],
+    isProcessingEmails: false,
+    selectedEmailId: null,
+    sentimentStream: [],
+    spatialChat: { isActive: false, imageUrl: null, messages: [], isProcessing: false }
   })
 }));

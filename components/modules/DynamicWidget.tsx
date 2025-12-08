@@ -2,11 +2,12 @@
 import React, { useState, useRef } from 'react';
 import { WidgetData, WidgetType } from '../../types';
 import { GlassPane } from '../ui/GlassPane';
-import { TrendingUp, TrendingDown, AlertTriangle, List, Layout, MapPin, Globe, ShieldAlert, GitBranch, CheckCircle2, Circle, ArrowRight, Plug, Flag, ChevronDown, ChevronUp, MessageSquare, Loader2, Upload, Maximize2, Target, Coins, Scale, Star, Navigation, MoreHorizontal, Rocket, Lightbulb, Zap, Users, ShoppingBag, BarChart3, PieChart, Briefcase, Cpu } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, List, Layout, MapPin, Globe, ShieldAlert, GitBranch, CheckCircle2, Circle, ArrowRight, Plug, Flag, ChevronDown, ChevronUp, MessageSquare, Loader2, Upload, Maximize2, Target, Coins, Scale, Star, Navigation, MoreHorizontal, Rocket, Lightbulb, Zap, Users, ShoppingBag, BarChart3, PieChart, Briefcase, Cpu, Mail } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyzeSalesData, fetchBusinessProfileDetails } from '../../services/geminiService';
 import { GenerativeWidget } from './GenerativeWidget';
+import { EmailClient } from './EmailClient';
 
 export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
   const { startBoardRoomSession, context, appendWidgets, updateWidgetContent } = useAppStore();
@@ -75,8 +76,14 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
      updateWidgetContent(widget.id, { ...widget.content, columns: newColumns });
   };
 
-  if (!widget || (!widget.content && !widget.genUISchema)) return null;
-  const safeRender = (val: any) => (typeof val === 'object' && val !== null) ? val.toString() : val;
+  if (!widget || (!widget.content && !widget.genUISchema && widget.type !== WidgetType.EMAIL_CLIENT)) return null;
+  
+  const safeRender = (val: any) => {
+    if (typeof val === 'object' && val !== null) {
+      return val.label || val.value || val.text || val.toString();
+    }
+    return val;
+  };
 
   // --- WIDGET RENDERERS ---
 
@@ -89,6 +96,14 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
              <Cpu className="w-3 h-3" /> GEN_UI
            </div>
            <GenerativeWidget schema={widget.genUISchema!} />
+        </div>
+      );
+    
+    case WidgetType.EMAIL_CLIENT:
+      return (
+        <div className="h-full relative overflow-hidden">
+           {/* In Dashboard View, we might show a mini-list, but let's assume full interactivity */}
+           <EmailClient />
         </div>
       );
 
@@ -160,13 +175,13 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
                      {quad.title}
                    </div>
                    <ul className="space-y-2">
-                     {Array.isArray(quad.items) && quad.items.map((item: string, i: number) => (
+                     {Array.isArray(quad.items) && quad.items.map((item: any, i: number) => (
                        <li 
                          key={i} 
-                         onClick={() => handleSwotDebate(item, quad.title)}
+                         onClick={() => handleSwotDebate(safeRender(item), quad.title)}
                          className="text-[10px] text-white/70 hover:text-white cursor-pointer hover:underline decoration-white/20 underline-offset-2 leading-relaxed"
                        >
-                         • {item}
+                         • {safeRender(item)}
                        </li>
                      ))}
                    </ul>
@@ -188,7 +203,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
              {inventoryItems.map((item: any, idx: number) => (
                <div key={idx} className="group">
                  <div className="flex justify-between items-center mb-1">
-                   <span className="text-xs text-white">{item.name}</span>
+                   <span className="text-xs text-white">{safeRender(item.name)}</span>
                    <span className={`text-[9px] font-mono px-1.5 rounded ${item.status === 'Low' ? 'bg-rose-500/10 text-rose-400' : 'text-emerald-400'}`}>
                      {item.status === 'Low' ? 'RESTOCK' : 'HEALTHY'}
                    </span>
@@ -243,12 +258,12 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
           <div className="space-y-4">
              {stages.map((stage: any, idx: number) => (
                <div key={idx} className="flex items-center gap-3">
-                 <div className="w-24 text-[10px] font-mono text-white/40 text-right uppercase">{stage.name}</div>
+                 <div className="w-24 text-[10px] font-mono text-white/40 text-right uppercase">{safeRender(stage.name)}</div>
                  <div className="flex-1 h-8 bg-white/5 rounded overflow-hidden relative group cursor-pointer border border-white/5 hover:border-tech-purple/30 transition-colors">
-                    <div className="absolute inset-y-0 left-0 bg-tech-purple/20 group-hover:bg-tech-purple/30 transition-all" style={{ width: `${Math.min(stage.count * 10, 100)}%` }} />
+                    <div className="absolute inset-y-0 left-0 bg-tech-purple/20 group-hover:bg-tech-purple/30 transition-all" style={{ width: `${Math.min((stage.count || 0) * 10, 100)}%` }} />
                     <div className="absolute inset-0 flex items-center justify-between px-3">
-                       <span className="text-xs font-medium text-white">{stage.count}</span>
-                       <span className="text-[9px] font-mono text-white/60">{stage.value}</span>
+                       <span className="text-xs font-medium text-white">{safeRender(stage.count)}</span>
+                       <span className="text-[9px] font-mono text-white/60">{safeRender(stage.value)}</span>
                     </div>
                  </div>
                </div>
@@ -301,12 +316,12 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
                    className="bg-white/5 border border-white/5 rounded-lg p-4 group hover:bg-white/10 hover:border-tech-cyan/30 transition-all cursor-pointer"
                  >
                    <div className="flex justify-between items-start mb-2">
-                     <h4 className="text-sm font-medium text-white group-hover:text-tech-cyan transition-colors">{tactic.title}</h4>
+                     <h4 className="text-sm font-medium text-white group-hover:text-tech-cyan transition-colors">{safeRender(tactic.title)}</h4>
                      <div className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase border ${tactic.roi === 'High' ? 'border-tech-emerald/30 text-tech-emerald bg-tech-emerald/10' : 'border-white/20 text-white/50'}`}>
-                       ROI: {tactic.roi}
+                       ROI: {safeRender(tactic.roi)}
                      </div>
                    </div>
-                   <p className="text-xs text-white/60 mb-3 leading-relaxed">{tactic.description}</p>
+                   <p className="text-xs text-white/60 mb-3 leading-relaxed">{safeRender(tactic.description)}</p>
                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <div className="text-[9px] text-white/30 font-mono uppercase">Effort</div>
@@ -320,7 +335,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
                         </div>
                       </div>
                       <button 
-                        onClick={() => handleDeployTactic(tactic.title)}
+                        onClick={() => handleDeployTactic(safeRender(tactic.title))}
                         className="text-[9px] flex items-center gap-1 text-white/40 hover:text-white transition-colors uppercase font-mono tracking-wider"
                       >
                         Deploy <ArrowRight className="w-2.5 h-2.5" />
@@ -351,7 +366,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
                  </div>
                  <div className="flex-1 p-2 space-y-2 overflow-y-auto custom-scrollbar">
                    {Array.isArray(col.tasks) && col.tasks.map((t: any, taskIdx: number) => {
-                     const taskText = typeof t === 'object' ? (t.title || t.text || "Task") : t;
+                     const taskText = safeRender(t);
                      const isDone = taskText.startsWith("✅");
                      return (
                        <motion.div 
@@ -419,7 +434,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
                   <div className="text-[9px] text-white/40 font-mono">{safeRender(service.reason)}</div>
                 </div>
                 <button 
-                  onClick={() => handleConnect(service.name)}
+                  onClick={() => handleConnect(safeRender(service.name))}
                   disabled={service.status === 'connected' || isAnalyzing}
                   className={`px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-colors flex items-center gap-1.5
                   ${service.status === 'connected' ? 'text-tech-emerald cursor-default' : 'bg-white/5 text-white/60 hover:bg-tech-purple hover:text-white'}

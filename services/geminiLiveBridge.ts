@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type, Blob as GenBlob } from '@google/genai';
 import { useAppStore } from '../store/appStore';
-import { AccessibilityMode, WidgetType } from '../types';
+import { AccessibilityMode, WidgetType, SentimentTone } from '../types';
 
 // Tools for the Live Agent to manipulate the OS
 const updateAccessibilityModeTool: FunctionDeclaration = {
@@ -83,7 +83,12 @@ class GeminiLiveBridge {
           }
         },
         config: {
-          systemInstruction: config.systemInstruction || "You are EntreprenOS, an Agentic Operating System. Your goal is to be a 'Sensory Bridge' for disabled founders. Use tools to adapt the UI.",
+          systemInstruction: config.systemInstruction || `
+            You are EntreprenOS, an Agentic Operating System. 
+            Goal: Be a 'Sensory Bridge' for disabled founders.
+            
+            IMPORTANT: If the user is in 'SENTIMENT_HUD' mode, you must prepend your text responses with a sentiment tag like [SENTIMENT: POSITIVE], [SENTIMENT: SKEPTICAL], [SENTIMENT: CONFLICT].
+          `,
           responseModalities: [Modality.AUDIO],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: config.voiceName || 'Kore' } }
@@ -114,6 +119,12 @@ class GeminiLiveBridge {
           data: base64Image
         }
       });
+    }
+  }
+
+  public sendText(text: string) {
+    if (this.session) {
+      this.session.sendRealtimeInput([{ text }]);
     }
   }
 
@@ -163,6 +174,12 @@ class GeminiLiveBridge {
        store.setLiveState({ isThinking: false });
     }
 
+    // NEW: Handle Text & Sentiment extraction if present in parts
+    const textPart = message.serverContent?.modelTurn?.parts?.find(p => p.text);
+    if (textPart && textPart.text) {
+       this.parseSentiment(textPart.text);
+    }
+
     // 2. Handle Turn Complete (Thinking finished)
     if (message.serverContent?.turnComplete) {
       store.setLiveState({ isThinking: false });
@@ -175,6 +192,22 @@ class GeminiLiveBridge {
           this.executeTool(fc);
        }
     }
+  }
+
+  private parseSentiment(text: string) {
+     const regex = /\[SENTIMENT:\s*(\w+)\]/i;
+     const match = text.match(regex);
+     if (match) {
+        const tone = match[1].toLowerCase() as SentimentTone;
+        useAppStore.getState().addSentimentFrame({
+           id: Math.random().toString(),
+           speaker: 'Gemini',
+           tone: tone,
+           text: text.replace(regex, '').trim(),
+           timestamp: Date.now(),
+           intensity: 0.8 // Simulated intensity
+        });
+     }
   }
 
   private async executeTool(fc: any) {

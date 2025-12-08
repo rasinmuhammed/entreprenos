@@ -1,96 +1,106 @@
 
 import React from 'react';
 import { useAppStore } from '../../store/appStore';
-import { AccessibilityMode } from '../../types';
+import { AccessibilityMode, View } from '../../types';
 import { GoldenGrid } from '../layout/GoldenGrid';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, Focus, Eye } from 'lucide-react';
+import { Volume2 } from 'lucide-react';
+
+// Specialized Views
+import { MicroStepView } from './MicroStepView';
+import { SentimentHUD } from './SentimentHUD';
+import { SpatialChat } from './SpatialChat';
+
+// Module Imports
+import { BoardRoom } from '../modules/BoardRoom';
+import { Journal } from '../modules/Journal';
+import { CompetitorIntelligence } from '../modules/CompetitorIntelligence';
+import { LocalIntelligence } from '../modules/LocalIntelligence';
+import { FinancialForecaster } from '../modules/FinancialForecaster';
+import { PitchDeckGenerator } from '../modules/PitchDeckGenerator';
+import { MarketingEngine } from '../modules/MarketingEngine';
+import { VentureSimulator } from '../modules/VentureSimulator';
+import { EmailClient } from '../modules/EmailClient';
 
 export const AdaptiveRenderer: React.FC = () => {
-  const { accessibilityMode, widgets } = useAppStore();
+  const { accessibilityMode, widgets, currentView } = useAppStore();
+
+  const renderStandardContent = () => {
+    switch (currentView) {
+      case View.BOARDROOM: return <BoardRoom />;
+      case View.JOURNAL: return <Journal />;
+      case View.COMPETITORS: return <CompetitorIntelligence />;
+      case View.LOCAL_INTEL: return <LocalIntelligence />;
+      case View.FINANCE: return <FinancialForecaster />;
+      case View.PITCH_DECK: return <PitchDeckGenerator />;
+      case View.MARKETING: return <MarketingEngine />;
+      case View.SIMULATOR: return <VentureSimulator />;
+      case View.COMMUNICATIONS: return <div className="h-full p-6"><EmailClient /></div>;
+      case View.DASHBOARD:
+      default:
+        return <GoldenGrid widgets={widgets} />;
+    }
+  };
 
   const variants = {
-    [AccessibilityMode.STANDARD]: (
-      <GoldenGrid widgets={widgets} />
-    ),
+    // STANDARD: Regular OS
+    [AccessibilityMode.STANDARD]: renderStandardContent(),
     
-    // BLIND / LOW VISION: Linear, High Contrast, Semantic Audio
+    // BLIND: Sonic View + Spatial Chat
     [AccessibilityMode.SONIC_VIEW]: (
-      <div className="p-8 max-w-4xl mx-auto space-y-8">
-        <div className="bg-yellow-400 text-black p-6 rounded-none border-4 border-black font-mono text-2xl font-bold uppercase tracking-wider mb-8 flex items-center gap-4">
-           <Volume2 className="w-10 h-10" /> Sonic View Active
-        </div>
-        
-        {widgets.map(widget => (
-           <div key={widget.id} className="border-b-4 border-white/20 pb-8" role="region" aria-label={widget.title}>
-              <h2 className="text-4xl font-bold text-white mb-4">{widget.title}</h2>
-              {/* Simplified Semantic Content */}
-              <div className="text-2xl text-white/80 leading-relaxed">
-                 {JSON.stringify(widget.content).slice(0, 150)}...
-              </div>
-              <button className="mt-6 px-8 py-4 bg-white text-black text-xl font-bold hover:bg-yellow-400 transition-colors">
-                 Interact with {widget.title}
-              </button>
-           </div>
-        ))}
+      <div className="h-full bg-black text-white p-4">
+         {/* Split Screen: Standard Linear List + Spatial Chat */}
+         <div className="grid grid-cols-1 md:grid-cols-2 h-full gap-4">
+            <div className="overflow-y-auto space-y-8 p-4">
+               <div className="bg-yellow-400 text-black p-4 font-bold text-xl uppercase border-4 border-black flex items-center gap-2">
+                 <Volume2 className="w-8 h-8" /> Active Screen Reader Feed
+               </div>
+               
+               {useAppStore.getState().inventoryAlerts.length > 0 && (
+                  <div role="alert" className="border-4 border-red-500 p-4">
+                     <h2 className="text-2xl font-bold text-red-500 mb-2">ALERTS</h2>
+                     {useAppStore.getState().inventoryAlerts.map((a, i) => (
+                        <div key={i} className="text-xl">{a.item}: {a.status}</div>
+                     ))}
+                  </div>
+               )}
+
+               {widgets.map(w => (
+                  <div key={w.id} className="border-b-2 border-white/20 pb-4">
+                     <h2 className="text-3xl font-bold mb-2">{w.title}</h2>
+                     <p className="text-xl opacity-80">{(JSON.stringify(w.content) || "").slice(0, 100)}...</p>
+                  </div>
+               ))}
+            </div>
+            <div className="h-full">
+               <SpatialChat />
+            </div>
+         </div>
       </div>
     ),
 
-    // NEURODIVERGENT: Tunnel Vision, No Clutter
+    // ADHD: Focus Shield (Micro-Steps)
     [AccessibilityMode.FOCUS_SHIELD]: (
-      <div className="h-full flex items-center justify-center bg-black">
-         <div className="max-w-2xl w-full text-center">
-            <div className="mb-12 inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 rounded-full text-zinc-500 font-mono text-xs uppercase tracking-widest">
-               <Focus className="w-4 h-4" /> Focus Shield Engaged
-            </div>
-            
-            {/* Show only the most critical widget */}
-            {widgets.length > 0 && (
-               <motion.div 
-                 initial={{ opacity: 0, scale: 0.9 }}
-                 animate={{ opacity: 1, scale: 1 }}
-                 className="bg-zinc-900 border border-zinc-800 p-12 rounded-3xl"
-               >
-                  <h1 className="text-4xl text-white font-light mb-8">{widgets[0].title}</h1>
-                  <div className="text-zinc-400 text-lg mb-12">
-                     {/* Simplified Content */}
-                     One task at a time. Process this item.
-                  </div>
-                  <button className="w-full py-6 bg-white text-black text-xl font-medium rounded-xl hover:bg-zinc-200 transition-colors">
-                     Complete & Next
-                  </button>
-               </motion.div>
-            )}
-         </div>
+      <div className="h-full bg-black">
+         <MicroStepView /> 
       </div>
     ),
 
     // DEAF: Sentiment HUD
     [AccessibilityMode.SENTIMENT_HUD]: (
-      <div className="h-full relative">
-         <div className="absolute top-4 right-4 flex gap-2">
-            <span className="px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/40 rounded-full text-xs font-mono uppercase">
-               Visual Audio
-            </span>
-            <span className="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/40 rounded-full text-xs font-mono uppercase">
-               Sentiment: Positive
-            </span>
-         </div>
-         <GoldenGrid widgets={widgets} />
-         {/* Overlay Captions would go here */}
-      </div>
+      <SentimentHUD />
     )
   };
 
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={accessibilityMode}
+        key={accessibilityMode + (accessibilityMode === AccessibilityMode.STANDARD ? currentView : '')}
         initial={{ opacity: 0, filter: "blur(10px)" }}
         animate={{ opacity: 1, filter: "blur(0px)" }}
         exit={{ opacity: 0, filter: "blur(10px)" }}
         transition={{ duration: 0.5 }}
-        className="h-full w-full overflow-y-auto"
+        className="h-full w-full overflow-hidden"
       >
         {variants[accessibilityMode]}
       </motion.div>

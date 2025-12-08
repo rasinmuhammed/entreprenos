@@ -1,6 +1,7 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Mic, Video, StopCircle, Play, Activity, ListChecks, Cpu, Terminal, ChevronRight, Camera, Loader2, User, Building, MapPin, Target, LayoutGrid, CheckSquare } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Mic, Video, StopCircle, Play, Activity, ListChecks, Cpu, Terminal, ChevronRight, Camera, Loader2, User, Building, MapPin, Target, LayoutGrid, CheckSquare, Sparkles, HelpCircle, BrainCircuit } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { analyzeMultimodalPitch, performDeepResearch, constructDashboard, generateStrategicQuestions, processSaaSOnboarding } from '../../services/geminiService';
 import { GlassPane } from '../ui/GlassPane';
@@ -55,7 +56,9 @@ export const ContextEngine: React.FC = () => {
     location: '',
     description: '',
     goals: [],
-    integrations: []
+    integrations: [],
+    operationalStyle: '',
+    digitalMaturity: ''
   });
 
   // Consultation State
@@ -71,13 +74,10 @@ export const ContextEngine: React.FC = () => {
 
   const handleStopPitch = async () => {
     if (!isRecording) return;
-    
     setPhase(Phase.ANALYZING_INPUT);
-    
     try {
       const blobs = await stopRecording();
       if (!blobs) throw new Error("Recording failed");
-      
       const dossier = await analyzeMultimodalPitch(blobs.audioBlob, blobs.videoBlob);
       setDossier(dossier);
       setPhase(Phase.CONFIRM_IDENTITY);
@@ -104,7 +104,6 @@ export const ContextEngine: React.FC = () => {
   const handleStartConsultation = async () => {
      if (!research.dossier) return;
      setPhase(Phase.GENERATING_QUESTIONS);
-     
      try {
        const result = await generateStrategicQuestions(research.dossier);
        setConsultationQuestions(result.questions || []);
@@ -130,18 +129,13 @@ export const ContextEngine: React.FC = () => {
 
   const handleDeepScan = async (finalAnswers?: {question: string, answer: string}[]) => {
     if (!research.dossier) return;
-    
     setPhase(Phase.SEARCHING_SENTIMENT);
-    
     try {
       const sentiment = await performDeepResearch(research.dossier);
       setSentiment(sentiment);
       setPhase(Phase.BUILDING_OS);
-      
       const profile = finalAnswers ? { answers: finalAnswers } : research.profile;
-
       const result = await constructDashboard(research.dossier, sentiment, profile);
-      
       setWidgets(Array.isArray(result.widgets) ? result.widgets : []);
       setContext({
         name: research.dossier.name,
@@ -153,7 +147,6 @@ export const ContextEngine: React.FC = () => {
         generatedAt: Date.now(),
         accessibilityMode: useAppStore.getState().accessibilityMode
       });
-      
     } catch (err) {
       console.error(err);
       setError("Intelligence gathering failed during deep scan.");
@@ -164,173 +157,244 @@ export const ContextEngine: React.FC = () => {
   // --- WIZARD RENDERER ---
   const renderWizard = () => {
     const steps = [
-      { title: "Business Basics", icon: <Building /> },
-      { title: "Strategic Focus", icon: <Target /> },
-      { title: "Tech Ecosystem", icon: <LayoutGrid /> }
+      { title: "The Vision", icon: <Building />, tip: "We'll build your brand dossier from this." },
+      { title: "The Operations", icon: <BrainCircuit />, tip: "This helps us tailor the UI complexity." },
+      { title: "The Ecosystem", icon: <LayoutGrid />, tip: "We'll auto-connect these services." }
     ];
 
+    const currentTip = steps[wizardStep].tip;
+
     return (
-      <GlassPane className="max-w-2xl w-full mx-auto p-8 relative overflow-hidden bg-nebula-900/90">
-         <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
-            <div>
-               <h2 className="text-2xl font-light text-white mb-1">Configuration Wizard</h2>
-               <p className="text-white/40 text-sm">Step {wizardStep + 1} of {steps.length}: {steps[wizardStep].title}</p>
-            </div>
-            <div className="flex gap-2">
-              {steps.map((_, i) => (
-                <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === wizardStep ? 'bg-tech-cyan' : 'bg-white/10'}`} />
-              ))}
-            </div>
-         </div>
+      <div className="flex gap-6 max-w-5xl w-full mx-auto">
+        {/* Main Wizard Pane */}
+        <GlassPane className="flex-[2] p-8 relative overflow-hidden bg-nebula-900/90 min-h-[500px] flex flex-col">
+           <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
+              <div>
+                 <h2 className="text-2xl font-light text-white mb-1">System Configuration</h2>
+                 <p className="text-white/40 text-sm">Step {wizardStep + 1} of {steps.length}: {steps[wizardStep].title}</p>
+              </div>
+              <div className="flex gap-2">
+                {steps.map((_, i) => (
+                  <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === wizardStep ? 'bg-tech-cyan' : 'bg-white/10'}`} />
+                ))}
+              </div>
+           </div>
 
-         <div className="min-h-[300px]">
-           {wizardStep === 0 && (
-             <div className="space-y-4">
-               <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                   <label className="text-xs font-mono uppercase text-white/40">Business Name</label>
-                   <input 
-                      type="text" 
-                      value={saasData.businessName}
-                      onChange={e => setSaasData({...saasData, businessName: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-tech-cyan/50 focus:outline-none"
-                      placeholder="e.g. Acme Corp"
-                   />
-                 </div>
-                 <div className="space-y-2">
-                   <label className="text-xs font-mono uppercase text-white/40">Industry Sector</label>
-                   <input 
-                      type="text" 
-                      value={saasData.industry}
-                      onChange={e => setSaasData({...saasData, industry: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-tech-cyan/50 focus:outline-none"
-                      placeholder="e.g. SaaS, Retail"
-                   />
-                 </div>
-               </div>
-               <div className="space-y-2">
-                   <label className="text-xs font-mono uppercase text-white/40">Location Context</label>
-                   <div className="relative">
-                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-white/30" />
-                      <input 
-                          type="text" 
-                          value={saasData.location}
-                          onChange={e => setSaasData({...saasData, location: e.target.value})}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg p-3 pl-10 text-white focus:border-tech-cyan/50 focus:outline-none"
-                          placeholder="City, State (or 'Global')"
-                      />
+           <div className="flex-1">
+             {wizardStep === 0 && (
+               <div className="space-y-6">
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <label className="text-xs font-mono uppercase text-white/40">Venture Name</label>
+                     <input 
+                        type="text" 
+                        value={saasData.businessName}
+                        onChange={e => setSaasData({...saasData, businessName: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white focus:border-tech-cyan/50 focus:outline-none transition-colors"
+                        placeholder="e.g. Acme Corp"
+                     />
                    </div>
-               </div>
-               <div className="space-y-2">
-                   <label className="text-xs font-mono uppercase text-white/40">Brief Description</label>
-                   <textarea 
-                      value={saasData.description}
-                      onChange={e => setSaasData({...saasData, description: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-tech-cyan/50 focus:outline-none h-24 resize-none"
-                      placeholder="What does the business do?"
-                   />
-               </div>
-             </div>
-           )}
-
-           {wizardStep === 1 && (
-             <div className="space-y-6">
-               <p className="text-white/60 text-sm">Select the key performance indicators (KPIs) relevant to this business:</p>
-               <div className="grid grid-cols-2 gap-3">
-                 {['Revenue Growth', 'Cost Reduction', 'Customer Retention', 'Foot Traffic', 'Compliance/Legal', 'Inventory Mgmt', 'Brand Awareness', 'Hiring'].map(goal => (
-                   <button 
-                     key={goal}
-                     onClick={() => {
-                        const newGoals = saasData.goals.includes(goal) 
-                          ? saasData.goals.filter(g => g !== goal)
-                          : [...saasData.goals, goal];
-                        setSaasData({...saasData, goals: newGoals});
-                     }}
-                     className={`p-3 rounded-lg border text-left text-sm transition-all flex items-center justify-between ${
-                        saasData.goals.includes(goal) 
-                          ? 'bg-tech-cyan/10 border-tech-cyan/50 text-white' 
-                          : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
-                     }`}
-                   >
-                     {goal}
-                     {saasData.goals.includes(goal) && <CheckCircle2 className="w-4 h-4 text-tech-cyan" />}
-                   </button>
-                 ))}
-               </div>
-             </div>
-           )}
-
-           {wizardStep === 2 && (
-             <div className="space-y-6">
-               <p className="text-white/60 text-sm">Select ecosystem integrations to auto-configure:</p>
-               <div className="grid grid-cols-1 gap-3">
-                 {[
-                   { id: 'gbp', name: 'Google Business Profile', icon: <MapPin /> },
-                   { id: 'shopify', name: 'Shopify / E-commerce', icon: <LayoutGrid /> },
-                   { id: 'quickbooks', name: 'Quickbooks / Xero', icon: <Terminal /> },
-                   { id: 'stripe', name: 'Stripe / Payments', icon: <CheckSquare /> }
-                 ].map(tool => (
-                   <button 
-                     key={tool.id}
-                     onClick={() => {
-                        const newInts = saasData.integrations.includes(tool.id) 
-                          ? saasData.integrations.filter(i => i !== tool.id)
-                          : [...saasData.integrations, tool.id];
-                        setSaasData({...saasData, integrations: newInts});
-                     }}
-                     className={`p-4 rounded-xl border text-left flex items-center gap-4 transition-all ${
-                        saasData.integrations.includes(tool.id) 
-                          ? 'bg-tech-purple/10 border-tech-purple/50 text-white' 
-                          : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
-                     }`}
-                   >
-                     <div className={`p-2 rounded-lg ${saasData.integrations.includes(tool.id) ? 'bg-tech-purple/20' : 'bg-white/5'}`}>
-                        {React.cloneElement(tool.icon as React.ReactElement<any>, { className: "w-5 h-5" })}
+                   <div className="space-y-2">
+                     <label className="text-xs font-mono uppercase text-white/40">Core Model</label>
+                     <input 
+                        type="text" 
+                        value={saasData.industry}
+                        onChange={e => setSaasData({...saasData, industry: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white focus:border-tech-cyan/50 focus:outline-none transition-colors"
+                        placeholder="e.g. B2B SaaS, Local Bakery"
+                     />
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                     <label className="text-xs font-mono uppercase text-white/40">Primary Location</label>
+                     <div className="relative">
+                        <MapPin className="absolute left-4 top-4 w-4 h-4 text-white/30" />
+                        <input 
+                            type="text" 
+                            value={saasData.location}
+                            onChange={e => setSaasData({...saasData, location: e.target.value})}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-4 pl-12 text-white focus:border-tech-cyan/50 focus:outline-none transition-colors"
+                            placeholder="City, State (or 'Global')"
+                        />
                      </div>
-                     <span className="font-medium">{tool.name}</span>
-                     {saasData.integrations.includes(tool.id) && <CheckCircle2 className="w-5 h-5 text-tech-purple ml-auto" />}
-                   </button>
-                 ))}
+                 </div>
+                 <div className="space-y-2">
+                     <label className="text-xs font-mono uppercase text-white/40">Elevator Pitch</label>
+                     <textarea 
+                        value={saasData.description}
+                        onChange={e => setSaasData({...saasData, description: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white focus:border-tech-cyan/50 focus:outline-none h-32 resize-none transition-colors"
+                        placeholder="What problem do you solve, and for whom?"
+                     />
+                 </div>
                </div>
-             </div>
-           )}
-         </div>
+             )}
 
-         <div className="mt-8 flex justify-between items-center pt-6 border-t border-white/10">
-            {wizardStep > 0 ? (
-               <button 
-                 onClick={() => setWizardStep(prev => prev - 1)}
-                 className="text-white/40 hover:text-white text-sm"
-               >
-                 Back
-               </button>
-            ) : (
-               <button 
-                 onClick={() => setPhase(Phase.SHARK_TANK_PITCH)}
-                 className="text-white/40 hover:text-white text-sm underline decoration-white/20 underline-offset-4"
-               >
-                 Switch to Live Pitch
-               </button>
-            )}
+             {wizardStep === 1 && (
+               <div className="space-y-8">
+                 <div className="space-y-4">
+                   <label className="text-xs font-mono uppercase text-white/40 block">Operational Style (Determines UI Density)</label>
+                   <div className="grid grid-cols-2 gap-4">
+                      {['Solo & Agile', 'Team & Structured'].map(style => (
+                        <button
+                           key={style}
+                           onClick={() => setSaasData({...saasData, operationalStyle: style})}
+                           className={`p-4 rounded-xl border text-left transition-all ${
+                              saasData.operationalStyle === style 
+                              ? 'bg-tech-cyan/10 border-tech-cyan text-white' 
+                              : 'bg-white/5 border-white/5 text-white/50 hover:bg-white/10'
+                           }`}
+                        >
+                          <span className="font-medium">{style}</span>
+                        </button>
+                      ))}
+                   </div>
+                 </div>
 
-            <button 
-               onClick={() => {
-                  if (wizardStep < steps.length - 1) setWizardStep(prev => prev + 1);
-                  else handleWizardSubmit();
-               }}
-               disabled={wizardStep === 0 && !saasData.businessName}
-               className="bg-tech-cyan hover:bg-cyan-400 text-nebula-950 px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-               {wizardStep === steps.length - 1 ? "Initialize OS" : "Next Step"}
-               <ArrowRight className="w-4 h-4" />
-            </button>
-         </div>
-      </GlassPane>
+                 <div className="space-y-4">
+                   <label className="text-xs font-mono uppercase text-white/40 block">Digital Maturity</label>
+                   <div className="grid grid-cols-3 gap-3">
+                      {['Just Starting', 'Growing', 'Scaling'].map(lvl => (
+                        <button
+                           key={lvl}
+                           onClick={() => setSaasData({...saasData, digitalMaturity: lvl})}
+                           className={`p-3 rounded-xl border text-center text-sm transition-all ${
+                              saasData.digitalMaturity === lvl 
+                              ? 'bg-tech-purple/10 border-tech-purple text-white' 
+                              : 'bg-white/5 border-white/5 text-white/50 hover:bg-white/10'
+                           }`}
+                        >
+                          {lvl}
+                        </button>
+                      ))}
+                   </div>
+                 </div>
+                 
+                 <div className="space-y-4">
+                   <label className="text-xs font-mono uppercase text-white/40 block">Top 3 Success Metrics</label>
+                   <div className="flex flex-wrap gap-2">
+                     {['Revenue', 'Profit', 'Retention', 'Traffic', 'Compliance', 'Inventory', 'Brand'].map(goal => (
+                       <button 
+                         key={goal}
+                         onClick={() => {
+                            const newGoals = saasData.goals.includes(goal) 
+                              ? saasData.goals.filter(g => g !== goal)
+                              : [...saasData.goals, goal];
+                            if (newGoals.length <= 3) setSaasData({...saasData, goals: newGoals});
+                         }}
+                         className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                            saasData.goals.includes(goal) 
+                              ? 'bg-white text-nebula-950 border-white' 
+                              : 'bg-transparent border-white/20 text-white/40 hover:border-white/50'
+                         }`}
+                       >
+                         {goal}
+                       </button>
+                     ))}
+                   </div>
+                 </div>
+               </div>
+             )}
+
+             {wizardStep === 2 && (
+               <div className="space-y-6">
+                 <p className="text-white/60 text-sm">We'll automatically connect to these services to pull your data:</p>
+                 <div className="grid grid-cols-1 gap-3">
+                   {[
+                     { id: 'gbp', name: 'Google Business Profile', icon: <MapPin />, desc: 'For reviews and local presence' },
+                     { id: 'shopify', name: 'Shopify / E-commerce', icon: <LayoutGrid />, desc: 'For inventory and sales data' },
+                     { id: 'quickbooks', name: 'Quickbooks / Xero', icon: <Terminal />, desc: 'For burn rate and runway' },
+                     { id: 'stripe', name: 'Stripe / Payments', icon: <CheckSquare />, desc: 'For MRR and revenue trends' }
+                   ].map(tool => (
+                     <button 
+                       key={tool.id}
+                       onClick={() => {
+                          const newInts = saasData.integrations.includes(tool.id) 
+                            ? saasData.integrations.filter(i => i !== tool.id)
+                            : [...saasData.integrations, tool.id];
+                          setSaasData({...saasData, integrations: newInts});
+                       }}
+                       className={`p-4 rounded-xl border text-left flex items-center gap-4 transition-all ${
+                          saasData.integrations.includes(tool.id) 
+                            ? 'bg-tech-purple/10 border-tech-purple/50 text-white' 
+                            : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
+                       }`}
+                     >
+                       <div className={`p-2 rounded-lg ${saasData.integrations.includes(tool.id) ? 'bg-tech-purple/20' : 'bg-white/5'}`}>
+                          {React.cloneElement(tool.icon as React.ReactElement<any>, { className: "w-5 h-5" })}
+                       </div>
+                       <div>
+                         <div className="font-medium text-sm">{tool.name}</div>
+                         <div className="text-xs opacity-50">{tool.desc}</div>
+                       </div>
+                       {saasData.integrations.includes(tool.id) && <CheckCircle2 className="w-5 h-5 text-tech-purple ml-auto" />}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             )}
+           </div>
+
+           <div className="mt-8 flex justify-between items-center pt-6 border-t border-white/10">
+              {wizardStep > 0 ? (
+                 <button 
+                   onClick={() => setWizardStep(prev => prev - 1)}
+                   className="text-white/40 hover:text-white text-sm"
+                 >
+                   Back
+                 </button>
+              ) : (
+                 <button 
+                   onClick={() => setPhase(Phase.SHARK_TANK_PITCH)}
+                   className="text-white/40 hover:text-white text-sm underline decoration-white/20 underline-offset-4"
+                 >
+                   Switch to Live Video Pitch
+                 </button>
+              )}
+
+              <button 
+                 onClick={() => {
+                    if (wizardStep < steps.length - 1) setWizardStep(prev => prev + 1);
+                    else handleWizardSubmit();
+                 }}
+                 disabled={wizardStep === 0 && !saasData.businessName}
+                 className="bg-tech-cyan hover:bg-cyan-400 text-nebula-950 px-8 py-3 rounded-xl font-medium flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-glow-cyan"
+              >
+                 {wizardStep === steps.length - 1 ? "Initialize Command Center" : "Next Step"}
+                 <ArrowRight className="w-4 h-4" />
+              </button>
+           </div>
+        </GlassPane>
+
+        {/* Sidebar Guide */}
+        <div className="flex-1 hidden lg:flex flex-col gap-4 pt-12">
+            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-20 h-20 bg-tech-cyan/10 blur-2xl rounded-full" />
+               <div className="flex items-center gap-2 mb-4 text-tech-cyan">
+                  <Sparkles className="w-5 h-5" />
+                  <span className="font-mono text-xs uppercase tracking-widest">OS Guide</span>
+               </div>
+               <p className="text-white/80 text-sm leading-relaxed mb-4">
+                  {currentTip}
+               </p>
+               <div className="h-1 w-12 bg-tech-cyan/30 rounded-full" />
+            </div>
+
+            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 opacity-60">
+               <div className="flex items-center gap-2 mb-2 text-white/50">
+                  <HelpCircle className="w-4 h-4" />
+                  <span className="font-mono text-xs uppercase tracking-widest">Why we ask</span>
+               </div>
+               <p className="text-white/50 text-xs leading-relaxed">
+                  EntreprenOS uses "Generative UI" to build a custom interface. The more context you provide about your operations, the more tailored your tools will be.
+               </p>
+            </div>
+        </div>
+      </div>
     );
   };
 
   // --- RENDER HELPERS ---
-
   const renderDossierCard = (dossier: EntityDossier) => (
     <GlassPane className="p-8 max-w-2xl w-full mx-auto border-t-4 border-t-tech-emerald">
       <div className="flex items-start justify-between mb-8">
@@ -384,7 +448,7 @@ export const ContextEngine: React.FC = () => {
   );
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 relative z-10">
+    <div className="w-full h-full flex flex-col justify-center items-center relative z-10 p-4">
       <AnimatePresence mode="wait">
         
         {/* PHASE 1: SHARK TANK PITCH */}
@@ -404,13 +468,13 @@ export const ContextEngine: React.FC = () => {
                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-white/60 mb-4"
                >
                  <Video className="w-3 h-3 text-tech-rose" />
-                 <span>SHARK TANK MODE ACTIVE</span>
+                 <span>LIVE PITCH MODE</span>
                </motion.div>
                <h1 className="text-5xl md:text-6xl font-light text-white tracking-tighter mb-4 text-glow">
-                 Pitch Your <span className="text-tech-cyan font-normal">Venture</span>
+                 Pitch Your <span className="text-tech-cyan font-normal">Vision</span>
                </h1>
                <p className="text-white/40 text-lg font-light max-w-lg mx-auto">
-                 Don't just type. Show us your product. Tell us your story. The AI is watching.
+                 Don't just type. Show us your world. The AI will analyze your product and passion.
                </p>
             </div>
 
@@ -424,16 +488,12 @@ export const ContextEngine: React.FC = () => {
                         <Camera className="w-12 h-12 text-white/20" />
                      </div>
                   )}
-                  
-                  {/* Recording Indicator */}
                   {isRecording && (
                     <div className="absolute top-4 right-4 flex items-center gap-2 bg-rose-500/80 backdrop-blur px-3 py-1 rounded-full z-10">
                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                        <span className="text-xs font-bold text-white uppercase tracking-wider">Rec</span>
                     </div>
                   )}
-
-                  {/* Audio Visualizer Overlay */}
                   {isRecording && (
                     <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/80 to-transparent flex items-end px-6 pb-4">
                        <AudioVisualizer stream={stream} />
@@ -441,7 +501,6 @@ export const ContextEngine: React.FC = () => {
                   )}
                </div>
 
-               {/* Controls */}
                <div className="flex justify-center mb-4">
                  {!isRecording ? (
                    <button 
@@ -462,7 +521,7 @@ export const ContextEngine: React.FC = () => {
 
                <div className="text-center text-xs font-mono text-white/30">
                  <button onClick={() => setPhase(Phase.SAAS_WIZARD)} className="hover:text-white underline decoration-white/20 underline-offset-4">
-                    Or switch to text input
+                    Or use the Configuration Wizard
                  </button>
                </div>
             </GlassPane>
@@ -482,6 +541,7 @@ export const ContextEngine: React.FC = () => {
              initial={{ opacity: 0, y: 20 }}
              animate={{ opacity: 1, y: 0 }}
              exit={{ opacity: 0, y: -20 }}
+             className="w-full"
            >
               {renderWizard()}
            </motion.div>
@@ -489,7 +549,7 @@ export const ContextEngine: React.FC = () => {
 
         {/* PHASE 3 & 7: SEARCH VISUALIZER */}
         {(phase === Phase.ANALYZING_INPUT || phase === Phase.SEARCHING_SENTIMENT) && (
-          <motion.div key="search" exit={{ opacity: 0 }}>
+          <motion.div key="search" exit={{ opacity: 0 }} className="w-full max-w-3xl">
              <SearchVisualizer 
                 query={phase === Phase.ANALYZING_INPUT ? "Processing Input Stream" : "Deep Sector Scan"} 
                 steps={phase === Phase.ANALYZING_INPUT ? [
@@ -514,6 +574,7 @@ export const ContextEngine: React.FC = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, y: -20 }}
+            className="w-full"
           >
             {renderDossierCard(research.dossier)}
           </motion.div>
@@ -567,11 +628,16 @@ export const ContextEngine: React.FC = () => {
                      {research.questions[currentQuestionIndex].options.map((opt, idx) => (
                        <button
                          key={idx}
-                         onClick={() => handleAnswerSelect(opt)}
+                         onClick={() => {
+                           const val = typeof opt === 'string' ? opt : (opt as any).value || (opt as any).label || (opt as any).text;
+                           handleAnswerSelect(val || JSON.stringify(opt));
+                         }}
                          className="w-full text-left p-5 rounded-lg bg-white/5 hover:bg-tech-cyan/10 border border-white/5 hover:border-tech-cyan/50 transition-all text-white/70 hover:text-white flex justify-between items-center group relative overflow-hidden"
                        >
                          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-tech-cyan opacity-0 group-hover:opacity-100 transition-opacity" />
-                         <span className="font-mono text-sm">{opt}</span>
+                         <span className="font-mono text-sm">
+                           {typeof opt === 'string' ? opt : (opt as any).label || (opt as any).text || (opt as any).value || JSON.stringify(opt)}
+                         </span>
                          <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transform -translate-x-2 group-hover:translate-x-0 transition-all text-tech-cyan" />
                        </button>
                      ))}

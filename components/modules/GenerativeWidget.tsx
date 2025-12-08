@@ -8,6 +8,14 @@ import { ArrowRight, BarChart3, TrendingUp } from 'lucide-react';
 export const GenerativeWidget: React.FC<{ schema: GenUIElement }> = ({ schema }) => {
   if (!schema) return null;
 
+  const safeRender = (content: any) => {
+    if (typeof content === 'string' || typeof content === 'number') return content;
+    if (typeof content === 'object' && content !== null) {
+       return content.label || content.value || content.text || JSON.stringify(content);
+    }
+    return '';
+  };
+
   const renderElement = (el: GenUIElement) => {
     switch (el.type) {
       case 'layout':
@@ -38,7 +46,7 @@ export const GenerativeWidget: React.FC<{ schema: GenUIElement }> = ({ schema })
         
         return (
           <div key={el.id} className={`${className} ${color}`}>
-            {el.props?.content}
+            {safeRender(el.props?.content)}
           </div>
         );
 
@@ -48,7 +56,7 @@ export const GenerativeWidget: React.FC<{ schema: GenUIElement }> = ({ schema })
             key={el.id} 
             className="px-4 py-2 bg-tech-cyan/20 hover:bg-tech-cyan/30 text-tech-cyan border border-tech-cyan/50 rounded-lg text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all w-full justify-center"
           >
-            {el.props?.label}
+            {safeRender(el.props?.label)}
             {el.props?.icon === 'arrow' && <ArrowRight className="w-3 h-3" />}
           </button>
         );
@@ -56,8 +64,8 @@ export const GenerativeWidget: React.FC<{ schema: GenUIElement }> = ({ schema })
       case 'metric':
         return (
           <div key={el.id} className="flex flex-col">
-            <span className="text-[10px] text-white/40 font-mono uppercase">{el.props?.label}</span>
-            <span className="text-xl text-white font-mono">{el.props?.value}</span>
+            <span className="text-[10px] text-white/40 font-mono uppercase">{safeRender(el.props?.label)}</span>
+            <span className="text-xl text-white font-mono">{safeRender(el.props?.value)}</span>
             {el.props?.trend && (
               <span className={`text-[9px] ${el.props.trend > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                 {el.props.trend > 0 ? '+' : ''}{el.props.trend}%

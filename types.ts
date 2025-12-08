@@ -14,27 +14,90 @@ export enum WidgetType {
   INVENTORY_TRACKER = "INVENTORY_TRACKER",
   SUBSCRIPTION_METRICS = "SUBSCRIPTION_METRICS",
   CLIENT_PIPELINE = "CLIENT_PIPELINE",
-  GENERATIVE_UI = "GENERATIVE_UI"
+  GENERATIVE_UI = "GENERATIVE_UI",
+  EMAIL_CLIENT = "EMAIL_CLIENT"
 }
 
-// --- NEW ACCESSIBILITY TYPES ---
+// --- ACCESSIBILITY MODES ---
 export enum AccessibilityMode {
   STANDARD = "STANDARD",
-  SONIC_VIEW = "SONIC_VIEW",       // For Blind Users (Linear, Audio-First)
-  FOCUS_SHIELD = "FOCUS_SHIELD",   // For Neurodivergent (Minimalist, Tunnel Vision)
-  SENTIMENT_HUD = "SENTIMENT_HUD"  // For Deaf (Visual Tone Indicators)
+  SONIC_VIEW = "SONIC_VIEW",       // Blind: Spatial Audio + Linear
+  FOCUS_SHIELD = "FOCUS_SHIELD",   // ADHD: Tunnel Vision + Micro-Steps
+  SENTIMENT_HUD = "SENTIMENT_HUD"  // Deaf: Subtext Visualization
 }
 
 export interface LiveConnectionState {
   isConnected: boolean;
   isStreaming: boolean;
   isThinking: boolean;
-  volumeLevel: number; // 0-1 for visualizer
+  volumeLevel: number; 
 }
 
-export interface LiveConfig {
-  voiceName: string;
-  systemInstruction: string;
+// --- SENTIMENT HUD TYPES ---
+export type SentimentTone = 'positive' | 'negative' | 'neutral' | 'skeptical' | 'excited' | 'conflict';
+
+export interface SentimentFrame {
+  id: string;
+  speaker: string;
+  tone: SentimentTone;
+  text: string;
+  timestamp: number;
+  intensity: number; // 0-1
+}
+
+// --- SPATIAL CHAT TYPES (Sonic View) ---
+export interface SpatialMessage {
+  id: string;
+  sender: 'user' | 'ai';
+  text: string;
+  timestamp: number;
+}
+
+export interface SpatialChatState {
+  isActive: boolean;
+  imageUrl: string | null;
+  messages: SpatialMessage[];
+  isProcessing: boolean;
+}
+
+// --- MICRO SPRINTER TYPES (Focus Shield) ---
+export interface MicroTask {
+  id: string;
+  text: string;
+  isComplete: boolean;
+  durationMinutes?: number;
+}
+
+export interface FocusSession {
+  isActive: boolean;
+  taskName: string;
+  microSteps: MicroTask[];
+  currentStepIndex: number;
+  streak: number;
+  startTime: number;
+}
+
+// --- INVENTORY SONAR TYPES ---
+export interface InventoryAlert {
+  item: string;
+  currentCount: number;
+  parLevel: number;
+  status: 'OK' | 'LOW' | 'CRITICAL';
+}
+
+// --- EMAIL AGENT TYPES ---
+export interface Email {
+  id: string;
+  sender: string;
+  subject: string;
+  snippet: string;
+  body: string;
+  receivedAt: number;
+  isRead: boolean;
+  priority: 'High' | 'Normal' | 'Low';
+  aiSummary: string;
+  suggestedReply?: string;
+  tags: string[];
 }
 
 // --- EXISTING TYPES ---
@@ -53,7 +116,8 @@ export enum View {
   FINANCE = "FINANCE",
   PITCH_DECK = "PITCH_DECK",
   MARKETING = "MARKETING",
-  SIMULATOR = "SIMULATOR"
+  SIMULATOR = "SIMULATOR",
+  COMMUNICATIONS = "COMMUNICATIONS"
 }
 
 export enum LogType {
@@ -97,7 +161,7 @@ export interface BusinessContext {
   stage: string;
   location?: string;
   generatedAt: number;
-  accessibilityMode: AccessibilityMode; // Added to context
+  accessibilityMode: AccessibilityMode;
 }
 
 export interface ChatMessage {
@@ -173,23 +237,9 @@ export interface ResearchGathered {
   profile: BusinessProfile | null;
 }
 
-export interface NearbyEntity {
-  name: string;
-  type: string;
-  distance: string;
-  impactLevel: "High" | "Medium" | "Low";
-  reasoning: string;
-}
-
-export interface LocationStrategy {
-  title: string;
-  description: string;
-  targetAudience: string;
-}
-
 export interface LocationAnalysis {
-  nearbyEntities: NearbyEntity[];
-  strategies: LocationStrategy[];
+  nearbyEntities: any[];
+  strategies: any[];
   footTrafficScore: number;
   summary: string;
 }
@@ -202,11 +252,11 @@ export interface FinancialInputs {
 }
 
 export interface FinancialScenario {
-  name: "Conservative" | "Aggressive" | "Survival";
+  name: string;
   runwayMonths: number;
-  profitabilityDate: string | "Never";
-  advice: string;
+  profitabilityDate: string;
   projectionData: number[];
+  advice: string;
 }
 
 export interface FinancialHealth {
@@ -215,53 +265,52 @@ export interface FinancialHealth {
   burnRateAssessment: "Healthy" | "High" | "Critical";
 }
 
-export interface PitchSlide {
-  title: string;
-  subtitle: string;
-  contentPoints: string[];
-  visualPrompt: string;
-  speakerNotes: string;
-}
-
 export interface PitchDeck {
-  slides: PitchSlide[];
+  slides: any[];
   generatedAt: number;
 }
 
-export type MarketingChannel = "LinkedIn" | "Twitter" | "Instagram" | "Email" | "Blog";
+export type MarketingChannel = 'LinkedIn' | 'Twitter' | 'Instagram' | 'Email' | 'Blog' | 'Other';
 
-export interface ContentPost {
+export interface MarketingPost {
   id: string;
   channel: MarketingChannel;
   week: number;
-  title: string;
   copy: string;
-  visualPrompt: string;
-  hashtags: string[];
+  hashtags?: string[];
+  visualPrompt?: string;
 }
 
 export interface MarketingCampaign {
   id: string;
   name: string;
   goal: string;
-  generatedAt: number;
   strategySummary: string;
-  posts: ContentPost[];
+  posts: MarketingPost[];
 }
 
-export interface CrisisChoice {
-  id: "A" | "B" | "C";
-  title: string;
-  description: string;
-  riskLevel: "Low" | "Medium" | "High";
+export interface SimulationState {
+  isActive: boolean;
+  currentEvent: any;
+  history: any[];
+  cashBalance: number;
+  reputationScore: number;
+  month: number;
 }
 
 export interface CrisisEvent {
   id: string;
   title: string;
   description: string;
-  type: "Financial" | "PR" | "Market" | "Operational";
+  type: string;
   choices: CrisisChoice[];
+}
+
+export interface CrisisChoice {
+  id: string;
+  title: string;
+  description: string;
+  riskLevel: string;
 }
 
 export interface SimulationResult {
@@ -272,17 +321,8 @@ export interface SimulationResult {
   survived: boolean;
 }
 
-export interface SimulationState {
-  isActive: boolean;
-  currentEvent: CrisisEvent | null;
-  history: { event: CrisisEvent, choice: CrisisChoice, result: SimulationResult }[];
-  cashBalance: number;
-  reputationScore: number;
-  month: number;
-}
-
 export interface VisionAnalysis {
-  detectedType: "COMPETITOR_PRICING" | "SKETCH_WIREFRAME" | "PHYSICAL_INVENTORY" | "UNKNOWN";
+  detectedType: string;
   summary: string;
   suggestedActions: string[];
   dataPayload: any;
@@ -295,4 +335,6 @@ export interface SaaSOnboardingData {
   description: string;
   goals: string[];
   integrations: string[];
+  operationalStyle: string;
+  digitalMaturity: string;
 }

@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAppStore } from '../../store/appStore';
 import { View } from '../../types';
-import { LayoutDashboard, Users, BookMarked, Target, Command, Map, PieChart, Presentation, Megaphone, Gamepad2, Eye } from 'lucide-react';
+import { LayoutDashboard, Users, BookMarked, Target, Command, Map, PieChart, Presentation, Megaphone, Gamepad2, Eye, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const Navigation: React.FC = () => {
@@ -10,6 +10,7 @@ export const Navigation: React.FC = () => {
 
   const navItems = [
     { id: View.DASHBOARD, label: 'Command', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { id: View.COMMUNICATIONS, label: 'Inbox', icon: <Mail className="w-5 h-5" /> },
     { id: View.MARKETING, label: 'Growth', icon: <Megaphone className="w-5 h-5" /> },
     { id: View.SIMULATOR, label: 'Wargame', icon: <Gamepad2 className="w-5 h-5" /> },
     { id: View.LOCAL_INTEL, label: 'Map', icon: <Map className="w-5 h-5" /> },
