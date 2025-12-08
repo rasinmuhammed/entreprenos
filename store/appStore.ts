@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { BusinessContext, WidgetData, BoardRoomState, ChatMessage, AgentPersona, ResearchGathered, ConsultationQuestion, BusinessProfile, View, LogEntry, LogType, CompetitorEntity, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, SimulationState, CrisisEvent, SimulationResult, CrisisChoice, AccessibilityMode, LiveConnectionState, InventoryAlert, FocusSession, Email, MicroTask, SentimentFrame, SpatialChatState, SpatialMessage } from '../types';
+import { BusinessContext, WidgetData, BoardRoomState, ChatMessage, AgentPersona, ResearchGathered, ConsultationQuestion, BusinessProfile, View, LogEntry, LogType, CompetitorEntity, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, SimulationState, CrisisEvent, SimulationResult, CrisisChoice, AccessibilityMode, LiveConnectionState, InventoryAlert, FocusSession, Email, MicroTask, SentimentFrame, SpatialChatState, SpatialMessage, OracleAlert, MemoryFragment } from '../types';
 
 interface AppState {
   hasStartedOnboarding: boolean;
@@ -25,6 +25,12 @@ interface AppState {
 
   // Focus Session (ADHD)
   focusSession: FocusSession;
+
+  // The Oracle (Predictive Alerts)
+  oracleAlerts: OracleAlert[];
+
+  // Memory Palace (Persistence)
+  memories: MemoryFragment[];
 
   // Email Agent
   emails: Email[];
@@ -97,6 +103,13 @@ interface AppState {
   startFocusSession: (taskName: string, microSteps: MicroTask[]) => void;
   completeMicroStep: () => void;
   endFocusSession: () => void;
+
+  // Oracle Actions
+  addOracleAlert: (alert: OracleAlert) => void;
+  removeOracleAlert: (id: string) => void;
+
+  // Memory Actions
+  addMemory: (memory: MemoryFragment) => void;
 
   // Email Actions
   setEmails: (emails: Email[]) => void;
@@ -189,6 +202,9 @@ export const useAppStore = create<AppState>((set) => ({
     streak: 0,
     startTime: 0
   },
+
+  oracleAlerts: [],
+  memories: [],
 
   emails: [],
   isProcessingEmails: false,
@@ -328,6 +344,13 @@ export const useAppStore = create<AppState>((set) => ({
       startTime: 0
     } 
   }),
+
+  // Oracle
+  addOracleAlert: (alert) => set((state) => ({ oracleAlerts: [alert, ...state.oracleAlerts] })),
+  removeOracleAlert: (id) => set((state) => ({ oracleAlerts: state.oracleAlerts.filter(a => a.id !== id) })),
+
+  // Memory
+  addMemory: (memory) => set((state) => ({ memories: [memory, ...state.memories] })),
 
   // Emails
   setEmails: (emails) => set({ emails }),
@@ -471,6 +494,8 @@ export const useAppStore = create<AppState>((set) => ({
     isProcessingEmails: false,
     selectedEmailId: null,
     sentimentStream: [],
-    spatialChat: { isActive: false, imageUrl: null, messages: [], isProcessing: false }
+    spatialChat: { isActive: false, imageUrl: null, messages: [], isProcessing: false },
+    oracleAlerts: [],
+    memories: []
   })
 }));

@@ -86,6 +86,22 @@ export interface InventoryAlert {
   status: 'OK' | 'LOW' | 'CRITICAL';
 }
 
+// --- ORACLE & MEMORY TYPES ---
+export interface OracleAlert {
+  id: string;
+  severity: 'high' | 'medium' | 'low';
+  title: string;
+  action: string;
+  timestamp: number;
+}
+
+export interface MemoryFragment {
+  id: string;
+  timestamp: number;
+  event: 'decision' | 'insight' | 'crisis';
+  summary: string;
+}
+
 // --- EMAIL AGENT TYPES ---
 export interface Email {
   id: string;
@@ -203,6 +219,7 @@ export interface EntityDossier {
   website?: string;
   description: string;
   location?: string;
+  energyLevel?: string; // New field for emotional context
 }
 
 export interface DigitalAudit {

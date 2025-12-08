@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { WidgetType, AgentPersona, EntityDossier, SentimentReport, ConsultationQuestion, BusinessProfile, CompetitorEntity, BusinessContext, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, CrisisEvent, CrisisChoice, SimulationResult, VisionAnalysis, GenUIElement, AccessibilityMode, SaaSOnboardingData, Email, MicroTask, SpatialMessage } from "../types";
+import { WidgetType, AgentPersona, EntityDossier, SentimentReport, ConsultationQuestion, BusinessProfile, CompetitorEntity, BusinessContext, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, CrisisEvent, CrisisChoice, SimulationResult, VisionAnalysis, GenUIElement, AccessibilityMode, SaaSOnboardingData, Email, MicroTask, SpatialMessage, OracleAlert } from "../types";
 
 const getClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -214,13 +214,14 @@ export const analyzeMultimodalPitch = async (audioBlob: Blob, videoBlob: Blob): 
   const videoBase64 = await blobToBase64(videoBlob);
 
   const prompt = `
-    TASK: You are a Venture Capitalist AI listening to a founder's pitch.
+    TASK: Extract business dossier from this voice/video pitch.
     INPUT: Audio (Voice) + Video (Visual Context).
-    ACTIONS:
-    1. IDENTIFY business entity, industry, and core value prop.
-    2. ANALYZE VISUALS: Do you see a prototype? A storefront? (Capture this).
-    3. DETECT LOCATION.
-
+    
+    REQUIREMENTS:
+    - Name, Industry, Location (critical for local intelligence).
+    - Core product/service.
+    - Founder's emotional state (energyLevel) -> affects UI tone (e.g., "Excited", "Nervous", "Determined").
+    
     OUTPUT JSON ONLY:
     {
       "name": "Entity Name",
@@ -230,7 +231,8 @@ export const analyzeMultimodalPitch = async (audioBlob: Blob, videoBlob: Blob): 
       "coreProduct": "Product/Service",
       "website": "N/A",
       "description": "Summary of pitch and visual context.",
-      "location": "Detected Location"
+      "location": "Detected Location",
+      "energyLevel": "Determined" 
     }
   `;
 
@@ -246,6 +248,40 @@ export const analyzeMultimodalPitch = async (audioBlob: Blob, videoBlob: Blob): 
   const data = extractJSON(response.text || "{}");
   if (!data.founders) data.founders = [];
   return data;
+};
+
+// --- THE ORACLE: Environmental Scanning ---
+export const scanEnvironment = async (context: BusinessContext): Promise<{ alerts: OracleAlert[] }> => {
+  const ai = getClient();
+  const prompt = `
+    TASK: Scan Google Trends, News, and Maps signals for "${context.businessName}" in "${context.industry}".
+    CONTEXT: User is located in ${context.location || "Global"}.
+    
+    FOCUS:
+    - Competitor moves (funding, pricing changes).
+    - Industry disruptions (regulations, supply chain).
+    - Local opportunities (new construction, events).
+    
+    OUTPUT JSON ONLY:
+    {
+      "alerts": [
+        { "id": "uuid", "severity": "high"|"medium"|"low", "title": "...", "action": "...", "timestamp": 123456789 }
+      ]
+    }
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: { tools: [{ googleSearch: {} }, { googleMaps: {} }], temperature: 0.3 }
+    });
+    
+    return extractJSON(response.text || "{ \"alerts\": [] }");
+  } catch (e) {
+    console.error("Oracle Scan Failed", e);
+    return { alerts: [] };
+  }
 };
 
 const blobToBase64 = (blob: Blob): Promise<string> => {

@@ -4,7 +4,7 @@ import { useAppStore } from '../../store/appStore';
 import { AccessibilityMode, View } from '../../types';
 import { GoldenGrid } from '../layout/GoldenGrid';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2 } from 'lucide-react';
+import { Volume2, Bell } from 'lucide-react';
 
 // Specialized Views
 import { MicroStepView } from './MicroStepView';
@@ -23,7 +23,7 @@ import { VentureSimulator } from '../modules/VentureSimulator';
 import { EmailClient } from '../modules/EmailClient';
 
 export const AdaptiveRenderer: React.FC = () => {
-  const { accessibilityMode, widgets, currentView } = useAppStore();
+  const { accessibilityMode, widgets, currentView, oracleAlerts, removeOracleAlert } = useAppStore();
 
   const renderStandardContent = () => {
     switch (currentView) {
@@ -96,17 +96,44 @@ export const AdaptiveRenderer: React.FC = () => {
   };
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={accessibilityMode + (accessibilityMode === AccessibilityMode.STANDARD ? currentView : '')}
-        initial={{ opacity: 0, filter: "blur(10px)" }}
-        animate={{ opacity: 1, filter: "blur(0px)" }}
-        exit={{ opacity: 0, filter: "blur(10px)" }}
-        transition={{ duration: 0.5 }}
-        className="h-full w-full overflow-hidden"
-      >
-        {variants[accessibilityMode]}
-      </motion.div>
-    </AnimatePresence>
+    <>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={accessibilityMode + (accessibilityMode === AccessibilityMode.STANDARD ? currentView : '')}
+          initial={{ opacity: 0, filter: "blur(10px)" }}
+          animate={{ opacity: 1, filter: "blur(0px)" }}
+          exit={{ opacity: 0, filter: "blur(10px)" }}
+          transition={{ duration: 0.5 }}
+          className="h-full w-full overflow-hidden"
+        >
+          {variants[accessibilityMode]}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* THE ORACLE OVERLAY */}
+      <div className="fixed bottom-24 right-8 z-50 flex flex-col gap-2">
+         <AnimatePresence>
+            {oracleAlerts.map(alert => (
+               <motion.div
+                 key={alert.id}
+                 initial={{ opacity: 0, x: 50 }}
+                 animate={{ opacity: 1, x: 0 }}
+                 exit={{ opacity: 0, scale: 0.9 }}
+                 className={`p-4 rounded-xl border backdrop-blur-md shadow-2xl w-80 cursor-pointer ${
+                    alert.severity === 'high' ? 'bg-rose-500/20 border-rose-500/50 text-white' : 'bg-tech-cyan/20 border-tech-cyan/50 text-white'
+                 }`}
+                 onClick={() => removeOracleAlert(alert.id)}
+               >
+                  <div className="flex items-center gap-2 mb-1">
+                     <Bell className="w-4 h-4 animate-pulse" />
+                     <span className="text-[10px] font-mono uppercase tracking-wider">Oracle Insight</span>
+                  </div>
+                  <h4 className="font-medium text-sm mb-1">{alert.title}</h4>
+                  <p className="text-xs opacity-80">{alert.action}</p>
+               </motion.div>
+            ))}
+         </AnimatePresence>
+      </div>
+    </>
   );
 };
