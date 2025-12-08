@@ -1,0 +1,8 @@
+{
+  "name": "EntreprenOS",
+  "description": "An adaptive, generative Operating System for entrepreneurs featuring a living boardroom and context-aware UI morphing.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
