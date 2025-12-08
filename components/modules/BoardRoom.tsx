@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/appStore';
@@ -22,6 +23,7 @@ export const BoardRoom: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState('');
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [currentThought, setCurrentThought] = useState("");
 
   // Filter critical widgets for the side panel
   const criticalWidgets = widgets.filter(w => 
@@ -42,17 +44,25 @@ export const BoardRoom: React.FC = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [boardRoom.messages, boardRoom.isThinking]);
+  }, [boardRoom.messages, boardRoom.isThinking, currentThought]);
 
   const runDebateSequence = async (topic: string) => {
     if (!context) return;
 
     clearBoardRoomMessages();
     setBoardRoomThinking(true);
+    setCurrentThought("Initializing strategic nodes...");
     
     try {
       const result = await runBoardroomDebate(topic, context.description);
       
+      // Simulate thought tracing visual
+      if (result.thoughts) {
+         setCurrentThought(result.thoughts);
+         await new Promise(r => setTimeout(r, 2000));
+      }
+      
+      setCurrentThought("");
       setBoardRoomThinking(false);
       
       for (const msg of result.dialogue) {
@@ -71,6 +81,7 @@ export const BoardRoom: React.FC = () => {
     } catch (e) {
       console.error(e);
       setBoardRoomThinking(false);
+      setCurrentThought("");
       addBoardRoomMessage({
         id: "error",
         sender: 'system',
@@ -110,8 +121,8 @@ export const BoardRoom: React.FC = () => {
             <div>
               <h2 className="text-2xl font-light tracking-wide text-white">BoardRoom <span className="text-white/40 font-mono text-sm">Active Session</span></h2>
               <div className="text-[10px] text-white/40 font-mono tracking-wider uppercase flex items-center gap-2">
-                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                 Neural Agents Online
+                 <span className={`w-1.5 h-1.5 rounded-full ${boardRoom.isThinking ? 'bg-purple-500 animate-ping' : 'bg-emerald-500'} `}></span>
+                 {boardRoom.isThinking ? "DEEP THINKING MODE" : "AGENTS ONLINE"}
               </div>
             </div>
           </div>
@@ -119,18 +130,32 @@ export const BoardRoom: React.FC = () => {
 
         {/* Chat Area */}
         <div className="flex-1 overflow-y-auto p-8 space-y-8 relative" ref={scrollRef}>
-           {/* Thinking Overlay */}
+           
+           {/* BRAIN SCAN VISUALIZATION */}
            <AnimatePresence>
             {boardRoom.isThinking && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 z-20 flex items-center justify-center bg-nebula-950/50 backdrop-blur-sm pointer-events-none"
+                className="my-10 p-8 rounded-2xl bg-black/20 border border-white/5 relative overflow-hidden"
               >
-                <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4" />
-                  <span className="text-xs font-mono text-cyan-300 tracking-widest">DELIBERATING...</span>
+                <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/5 to-transparent animate-scanline" />
+                
+                <div className="flex items-center gap-6 relative z-10">
+                   {/* Brain Animation */}
+                   <div className="w-16 h-16 relative">
+                      <div className="absolute inset-0 border-4 border-purple-500/30 rounded-full animate-ping" />
+                      <div className="absolute inset-2 border-4 border-cyan-500/30 rounded-full animate-spin" />
+                      <BrainCircuit className="absolute inset-0 m-auto w-8 h-8 text-white/50" />
+                   </div>
+                   
+                   {/* Thought Log */}
+                   <div className="flex-1 font-mono text-xs">
+                      <div className="text-purple-400 mb-1 uppercase tracking-widest">Thought Stream</div>
+                      <div className="text-white/80 leading-relaxed typewriter">{currentThought || "Analyzing vectors..."}</div>
+                   </div>
                 </div>
               </motion.div>
             )}

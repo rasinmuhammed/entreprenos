@@ -1,31 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Search, Activity, ListChecks, Cpu, Terminal, ChevronRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Mic, Video, StopCircle, Play, Activity, ListChecks, Cpu, Terminal, ChevronRight, Camera, Loader2, User, Building, MapPin, Target, LayoutGrid, CheckSquare } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
-import { identifyEntity, performDeepResearch, constructDashboard, generateStrategicQuestions } from '../../services/geminiService';
+import { analyzeMultimodalPitch, performDeepResearch, constructDashboard, generateStrategicQuestions, processSaaSOnboarding } from '../../services/geminiService';
 import { GlassPane } from '../ui/GlassPane';
 import { SearchVisualizer } from '../ui/SearchVisualizer';
-import { EntityDossier } from '../../types';
+import { EntityDossier, SaaSOnboardingData } from '../../types';
+import { useMultimodalInput } from '../../hooks/useMultimodalInput';
+import { AudioVisualizer } from '../ui/AudioVisualizer';
 
 enum Phase {
-  INPUT = 0,
-  SEARCHING_IDENTITY = 1,
-  CONFIRM_IDENTITY = 2,
-  GENERATING_QUESTIONS = 3,
-  CONSULTATION = 4,
-  SEARCHING_SENTIMENT = 5,
-  BUILDING_OS = 6
+  INIT = 0,
+  SHARK_TANK_PITCH = 1,
+  SAAS_WIZARD = 2,
+  ANALYZING_INPUT = 3,
+  CONFIRM_IDENTITY = 4,
+  GENERATING_QUESTIONS = 5,
+  CONSULTATION = 6,
+  SEARCHING_SENTIMENT = 7,
+  BUILDING_OS = 8
 }
 
 export const ContextEngine: React.FC = () => {
-  const [input, setInput] = useState('');
-  const [phase, setPhase] = useState<Phase>(Phase.INPUT);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Consultation State
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<{question: string, answer: string}[]>([]);
-
   const { 
     setContext, 
     setWidgets, 
@@ -33,24 +29,75 @@ export const ContextEngine: React.FC = () => {
     setSentiment,
     setConsultationQuestions,
     setBusinessProfile,
-    research 
+    research,
+    userRole
   } = useAppStore();
 
-  const handleIdentify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+  const [phase, setPhase] = useState<Phase>(Phase.INIT);
+  const [error, setError] = useState<string | null>(null);
+  const isAlly = userRole === 'ALLY';
 
-    setPhase(Phase.SEARCHING_IDENTITY);
-    setError(null);
+  useEffect(() => {
+    if (phase === Phase.INIT) {
+      setPhase(isAlly ? Phase.SAAS_WIZARD : Phase.SHARK_TANK_PITCH);
+    }
+  }, [isAlly, phase]);
+  
+  // Shark Tank State
+  const { isRecording, startRecording, stopRecording, stream } = useMultimodalInput();
+  const videoRef = useRef<HTMLVideoElement>(null);
 
+  // SaaS Wizard State
+  const [wizardStep, setWizardStep] = useState(0);
+  const [saasData, setSaasData] = useState<SaaSOnboardingData>({
+    businessName: '',
+    industry: '',
+    location: '',
+    description: '',
+    goals: [],
+    integrations: []
+  });
+
+  // Consultation State
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<{question: string, answer: string}[]>([]);
+
+  // Attach stream to video element
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  const handleStopPitch = async () => {
+    if (!isRecording) return;
+    
+    setPhase(Phase.ANALYZING_INPUT);
+    
     try {
-      const dossier = await identifyEntity(input);
+      const blobs = await stopRecording();
+      if (!blobs) throw new Error("Recording failed");
+      
+      const dossier = await analyzeMultimodalPitch(blobs.audioBlob, blobs.videoBlob);
       setDossier(dossier);
       setPhase(Phase.CONFIRM_IDENTITY);
     } catch (err) {
       console.error(err);
-      setError("Could not locate entity. Please try being more specific.");
-      setPhase(Phase.INPUT);
+      setError("Analysis failed. Please try pitching again.");
+      setPhase(Phase.SHARK_TANK_PITCH);
+    }
+  };
+
+  const handleWizardSubmit = async () => {
+    setPhase(Phase.ANALYZING_INPUT);
+    try {
+      const dossier = await processSaaSOnboarding(saasData);
+      setDossier(dossier);
+      setPhase(Phase.CONFIRM_IDENTITY);
+    } catch (err) {
+      console.error(err);
+      setError("Processing failed.");
+      setPhase(Phase.SAAS_WIZARD);
     }
   };
 
@@ -103,7 +150,8 @@ export const ContextEngine: React.FC = () => {
         industry: research.dossier.industry,
         stage: "Live",
         location: research.dossier.location,
-        generatedAt: Date.now()
+        generatedAt: Date.now(),
+        accessibilityMode: useAppStore.getState().accessibilityMode
       });
       
     } catch (err) {
@@ -111,6 +159,174 @@ export const ContextEngine: React.FC = () => {
       setError("Intelligence gathering failed during deep scan.");
       setPhase(Phase.CONFIRM_IDENTITY);
     }
+  };
+
+  // --- WIZARD RENDERER ---
+  const renderWizard = () => {
+    const steps = [
+      { title: "Business Basics", icon: <Building /> },
+      { title: "Strategic Focus", icon: <Target /> },
+      { title: "Tech Ecosystem", icon: <LayoutGrid /> }
+    ];
+
+    return (
+      <GlassPane className="max-w-2xl w-full mx-auto p-8 relative overflow-hidden bg-nebula-900/90">
+         <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
+            <div>
+               <h2 className="text-2xl font-light text-white mb-1">Configuration Wizard</h2>
+               <p className="text-white/40 text-sm">Step {wizardStep + 1} of {steps.length}: {steps[wizardStep].title}</p>
+            </div>
+            <div className="flex gap-2">
+              {steps.map((_, i) => (
+                <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === wizardStep ? 'bg-tech-cyan' : 'bg-white/10'}`} />
+              ))}
+            </div>
+         </div>
+
+         <div className="min-h-[300px]">
+           {wizardStep === 0 && (
+             <div className="space-y-4">
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <label className="text-xs font-mono uppercase text-white/40">Business Name</label>
+                   <input 
+                      type="text" 
+                      value={saasData.businessName}
+                      onChange={e => setSaasData({...saasData, businessName: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-tech-cyan/50 focus:outline-none"
+                      placeholder="e.g. Acme Corp"
+                   />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-xs font-mono uppercase text-white/40">Industry Sector</label>
+                   <input 
+                      type="text" 
+                      value={saasData.industry}
+                      onChange={e => setSaasData({...saasData, industry: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-tech-cyan/50 focus:outline-none"
+                      placeholder="e.g. SaaS, Retail"
+                   />
+                 </div>
+               </div>
+               <div className="space-y-2">
+                   <label className="text-xs font-mono uppercase text-white/40">Location Context</label>
+                   <div className="relative">
+                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-white/30" />
+                      <input 
+                          type="text" 
+                          value={saasData.location}
+                          onChange={e => setSaasData({...saasData, location: e.target.value})}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg p-3 pl-10 text-white focus:border-tech-cyan/50 focus:outline-none"
+                          placeholder="City, State (or 'Global')"
+                      />
+                   </div>
+               </div>
+               <div className="space-y-2">
+                   <label className="text-xs font-mono uppercase text-white/40">Brief Description</label>
+                   <textarea 
+                      value={saasData.description}
+                      onChange={e => setSaasData({...saasData, description: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-tech-cyan/50 focus:outline-none h-24 resize-none"
+                      placeholder="What does the business do?"
+                   />
+               </div>
+             </div>
+           )}
+
+           {wizardStep === 1 && (
+             <div className="space-y-6">
+               <p className="text-white/60 text-sm">Select the key performance indicators (KPIs) relevant to this business:</p>
+               <div className="grid grid-cols-2 gap-3">
+                 {['Revenue Growth', 'Cost Reduction', 'Customer Retention', 'Foot Traffic', 'Compliance/Legal', 'Inventory Mgmt', 'Brand Awareness', 'Hiring'].map(goal => (
+                   <button 
+                     key={goal}
+                     onClick={() => {
+                        const newGoals = saasData.goals.includes(goal) 
+                          ? saasData.goals.filter(g => g !== goal)
+                          : [...saasData.goals, goal];
+                        setSaasData({...saasData, goals: newGoals});
+                     }}
+                     className={`p-3 rounded-lg border text-left text-sm transition-all flex items-center justify-between ${
+                        saasData.goals.includes(goal) 
+                          ? 'bg-tech-cyan/10 border-tech-cyan/50 text-white' 
+                          : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
+                     }`}
+                   >
+                     {goal}
+                     {saasData.goals.includes(goal) && <CheckCircle2 className="w-4 h-4 text-tech-cyan" />}
+                   </button>
+                 ))}
+               </div>
+             </div>
+           )}
+
+           {wizardStep === 2 && (
+             <div className="space-y-6">
+               <p className="text-white/60 text-sm">Select ecosystem integrations to auto-configure:</p>
+               <div className="grid grid-cols-1 gap-3">
+                 {[
+                   { id: 'gbp', name: 'Google Business Profile', icon: <MapPin /> },
+                   { id: 'shopify', name: 'Shopify / E-commerce', icon: <LayoutGrid /> },
+                   { id: 'quickbooks', name: 'Quickbooks / Xero', icon: <Terminal /> },
+                   { id: 'stripe', name: 'Stripe / Payments', icon: <CheckSquare /> }
+                 ].map(tool => (
+                   <button 
+                     key={tool.id}
+                     onClick={() => {
+                        const newInts = saasData.integrations.includes(tool.id) 
+                          ? saasData.integrations.filter(i => i !== tool.id)
+                          : [...saasData.integrations, tool.id];
+                        setSaasData({...saasData, integrations: newInts});
+                     }}
+                     className={`p-4 rounded-xl border text-left flex items-center gap-4 transition-all ${
+                        saasData.integrations.includes(tool.id) 
+                          ? 'bg-tech-purple/10 border-tech-purple/50 text-white' 
+                          : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
+                     }`}
+                   >
+                     <div className={`p-2 rounded-lg ${saasData.integrations.includes(tool.id) ? 'bg-tech-purple/20' : 'bg-white/5'}`}>
+                        {React.cloneElement(tool.icon as React.ReactElement<any>, { className: "w-5 h-5" })}
+                     </div>
+                     <span className="font-medium">{tool.name}</span>
+                     {saasData.integrations.includes(tool.id) && <CheckCircle2 className="w-5 h-5 text-tech-purple ml-auto" />}
+                   </button>
+                 ))}
+               </div>
+             </div>
+           )}
+         </div>
+
+         <div className="mt-8 flex justify-between items-center pt-6 border-t border-white/10">
+            {wizardStep > 0 ? (
+               <button 
+                 onClick={() => setWizardStep(prev => prev - 1)}
+                 className="text-white/40 hover:text-white text-sm"
+               >
+                 Back
+               </button>
+            ) : (
+               <button 
+                 onClick={() => setPhase(Phase.SHARK_TANK_PITCH)}
+                 className="text-white/40 hover:text-white text-sm underline decoration-white/20 underline-offset-4"
+               >
+                 Switch to Live Pitch
+               </button>
+            )}
+
+            <button 
+               onClick={() => {
+                  if (wizardStep < steps.length - 1) setWizardStep(prev => prev + 1);
+                  else handleWizardSubmit();
+               }}
+               disabled={wizardStep === 0 && !saasData.businessName}
+               className="bg-tech-cyan hover:bg-cyan-400 text-nebula-950 px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+               {wizardStep === steps.length - 1 ? "Initialize OS" : "Next Step"}
+               <ArrowRight className="w-4 h-4" />
+            </button>
+         </div>
+      </GlassPane>
+    );
   };
 
   // --- RENDER HELPERS ---
@@ -121,13 +337,13 @@ export const ContextEngine: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="w-2 h-2 rounded-full bg-tech-emerald animate-pulse"/>
-            <span className="text-tech-emerald font-mono text-xs uppercase tracking-widest">Target Acquired</span>
+            <span className="text-tech-emerald font-mono text-xs uppercase tracking-widest">Entity Synthesized</span>
           </div>
           <h2 className="text-4xl text-white font-light tracking-tight">{dossier.name}</h2>
           {dossier.location && <div className="text-white/40 text-sm mt-1 flex items-center gap-1"><Terminal className="w-3 h-3"/> {dossier.location}</div>}
         </div>
         <div className="px-4 py-2 bg-tech-emerald/10 border border-tech-emerald/20 text-tech-emerald rounded-lg text-xs font-mono tracking-wider flex items-center gap-2">
-          <CheckCircle2 className="w-3.5 h-3.5" /> CONFIRMED
+          <CheckCircle2 className="w-3.5 h-3.5" /> VERIFIED
         </div>
       </div>
 
@@ -150,17 +366,17 @@ export const ContextEngine: React.FC = () => {
 
       <div className="flex gap-4">
         <button 
-          onClick={() => setPhase(Phase.INPUT)}
+          onClick={() => setPhase(isAlly ? Phase.SAAS_WIZARD : Phase.SHARK_TANK_PITCH)}
           className="px-6 py-4 rounded-lg border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-colors font-mono text-xs uppercase tracking-wider"
         >
-          [ Cancel ]
+          [ Edit Data ]
         </button>
         <button 
           onClick={handleStartConsultation}
           className="flex-1 bg-tech-cyan/10 hover:bg-tech-cyan/20 border border-tech-cyan/50 text-tech-cyan font-medium rounded-lg flex items-center justify-center gap-3 transition-all hover:shadow-glow-cyan group"
         >
           <Activity className="w-4 h-4" />
-          <span>Initiate Calibration Sequence</span>
+          <span>Confirm & Build OS</span>
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
@@ -168,17 +384,17 @@ export const ContextEngine: React.FC = () => {
   );
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 relative z-10">
+    <div className="w-full max-w-4xl mx-auto px-4 relative z-10">
       <AnimatePresence mode="wait">
         
-        {/* PHASE 0: INPUT */}
-        {phase === Phase.INPUT && (
+        {/* PHASE 1: SHARK TANK PITCH */}
+        {phase === Phase.SHARK_TANK_PITCH && (
           <motion.div
             key="input"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
-            className="w-full"
+            className="w-full max-w-2xl mx-auto"
           >
             <div className="text-center mb-10">
                <motion.div 
@@ -187,35 +403,68 @@ export const ContextEngine: React.FC = () => {
                  transition={{ delay: 0.2 }}
                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-white/60 mb-4"
                >
-                 <Terminal className="w-3 h-3" />
-                 <span>SYSTEM READY</span>
+                 <Video className="w-3 h-3 text-tech-rose" />
+                 <span>SHARK TANK MODE ACTIVE</span>
                </motion.div>
                <h1 className="text-5xl md:text-6xl font-light text-white tracking-tighter mb-4 text-glow">
-                 Entrepren<span className="text-tech-cyan font-normal">OS</span>
+                 Pitch Your <span className="text-tech-cyan font-normal">Venture</span>
                </h1>
                <p className="text-white/40 text-lg font-light max-w-lg mx-auto">
-                 The world's first agentic operating system. Enter your venture to begin.
+                 Don't just type. Show us your product. Tell us your story. The AI is watching.
                </p>
             </div>
 
-            <GlassPane className="p-1 pl-6 flex items-center bg-nebula-900/80 border-white/20 shadow-2xl">
-              <ChevronRight className="w-5 h-5 text-tech-cyan animate-pulse mr-2 shrink-0" />
-              <form onSubmit={handleIdentify} className="flex-1 flex">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="e.g. My local coffee shop in Brooklyn..."
-                  className="w-full bg-transparent border-none py-6 text-xl text-white placeholder-white/20 focus:outline-none focus:ring-0 font-mono"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  className="px-8 m-2 bg-white/10 hover:bg-tech-cyan hover:text-nebula-950 text-white rounded-lg transition-all font-medium"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
-              </form>
+            <GlassPane className="p-6 bg-nebula-900/80 border-white/20 shadow-2xl relative overflow-hidden">
+               {/* Camera Viewfinder */}
+               <div className="aspect-video bg-black rounded-xl overflow-hidden relative mb-6 border border-white/10 group">
+                  {isRecording ? (
+                     <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
+                  ) : (
+                     <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+                        <Camera className="w-12 h-12 text-white/20" />
+                     </div>
+                  )}
+                  
+                  {/* Recording Indicator */}
+                  {isRecording && (
+                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-rose-500/80 backdrop-blur px-3 py-1 rounded-full z-10">
+                       <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                       <span className="text-xs font-bold text-white uppercase tracking-wider">Rec</span>
+                    </div>
+                  )}
+
+                  {/* Audio Visualizer Overlay */}
+                  {isRecording && (
+                    <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/80 to-transparent flex items-end px-6 pb-4">
+                       <AudioVisualizer stream={stream} />
+                    </div>
+                  )}
+               </div>
+
+               {/* Controls */}
+               <div className="flex justify-center mb-4">
+                 {!isRecording ? (
+                   <button 
+                     onClick={startRecording}
+                     className="w-16 h-16 rounded-full bg-tech-cyan hover:bg-cyan-400 flex items-center justify-center shadow-glow-cyan transition-all hover:scale-105 group"
+                   >
+                     <Mic className="w-6 h-6 text-nebula-950 group-hover:scale-110 transition-transform" />
+                   </button>
+                 ) : (
+                   <button 
+                     onClick={handleStopPitch}
+                     className="w-16 h-16 rounded-full bg-tech-rose hover:bg-rose-500 flex items-center justify-center shadow-[0_0_20px_rgba(244,63,94,0.5)] transition-all hover:scale-105 group"
+                   >
+                     <StopCircle className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+                   </button>
+                 )}
+               </div>
+
+               <div className="text-center text-xs font-mono text-white/30">
+                 <button onClick={() => setPhase(Phase.SAAS_WIZARD)} className="hover:text-white underline decoration-white/20 underline-offset-4">
+                    Or switch to text input
+                 </button>
+               </div>
             </GlassPane>
             
             {error && (
@@ -223,31 +472,34 @@ export const ContextEngine: React.FC = () => {
                  [ERROR] {error}
               </motion.div>
             )}
-            
-            {/* Suggested Chips */}
-            <div className="mt-8 flex justify-center gap-3 flex-wrap">
-               {["SpaceX", "Joe's Pizza in NYC", "AI Startup Idea"].map(ex => (
-                 <button key={ex} onClick={() => setInput(ex)} className="px-3 py-1.5 rounded border border-white/5 hover:border-white/20 text-white/30 hover:text-white text-xs font-mono transition-colors">
-                   "{ex}"
-                 </button>
-               ))}
-            </div>
           </motion.div>
         )}
 
-        {/* PHASE 1 & 5: SEARCH VISUALIZER */}
-        {(phase === Phase.SEARCHING_IDENTITY || phase === Phase.SEARCHING_SENTIMENT) && (
+        {/* PHASE 2: SAAS WIZARD */}
+        {phase === Phase.SAAS_WIZARD && (
+           <motion.div
+             key="wizard"
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             exit={{ opacity: 0, y: -20 }}
+           >
+              {renderWizard()}
+           </motion.div>
+        )}
+
+        {/* PHASE 3 & 7: SEARCH VISUALIZER */}
+        {(phase === Phase.ANALYZING_INPUT || phase === Phase.SEARCHING_SENTIMENT) && (
           <motion.div key="search" exit={{ opacity: 0 }}>
              <SearchVisualizer 
-                query={input || research.dossier?.name || "Entity"} 
-                steps={phase === Phase.SEARCHING_IDENTITY ? [
-                  "Parsing localized entity data...",
-                  "Triangulating business footprint...",
-                  "Accessing Google Knowledge Graph..."
+                query={phase === Phase.ANALYZING_INPUT ? "Processing Input Stream" : "Deep Sector Scan"} 
+                steps={phase === Phase.ANALYZING_INPUT ? [
+                  "Parsing structural data...",
+                  "Extracting semantic intent...",
+                  "Identifying ecosystem nodes...",
+                  "Synthesizing Venture Dossier..."
                 ] : [
                   "Auditing digital presence assets...",
                   "Checking Google Maps visibility...",
-                  "Analyzing reviews & sentiment...",
                   "Scanning local competitors...",
                   "Calculating growth opportunities..."
                 ]}
@@ -255,7 +507,7 @@ export const ContextEngine: React.FC = () => {
           </motion.div>
         )}
 
-        {/* PHASE 2: CONFIRMATION */}
+        {/* PHASE 4: CONFIRMATION */}
         {phase === Phase.CONFIRM_IDENTITY && research.dossier && (
           <motion.div 
             key="confirm"
@@ -267,7 +519,7 @@ export const ContextEngine: React.FC = () => {
           </motion.div>
         )}
 
-        {/* PHASE 3: GENERATING (Loader) */}
+        {/* PHASE 5: GENERATING (Loader) */}
         {phase === Phase.GENERATING_QUESTIONS && (
            <motion.div key="gen" className="flex flex-col items-center justify-center h-64">
               <div className="w-16 h-16 border-4 border-tech-purple border-t-transparent rounded-full animate-spin mb-6" />
@@ -275,7 +527,7 @@ export const ContextEngine: React.FC = () => {
            </motion.div>
         )}
 
-        {/* PHASE 4: CONSULTATION */}
+        {/* PHASE 6: CONSULTATION */}
         {phase === Phase.CONSULTATION && research.questions.length > 0 && (
           <motion.div
             key="consultation"
@@ -330,7 +582,7 @@ export const ContextEngine: React.FC = () => {
           </motion.div>
         )}
 
-        {/* PHASE 6: BUILDING */}
+        {/* PHASE 8: BUILDING */}
         {phase === Phase.BUILDING_OS && (
           <motion.div key="building" className="text-center" exit={{ opacity: 0 }}>
              <motion.div 

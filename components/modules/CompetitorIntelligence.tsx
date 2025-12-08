@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { GlassPane } from '../ui/GlassPane';
@@ -147,7 +148,7 @@ export const CompetitorIntelligence: React.FC = () => {
                 <span className="text-emerald-200 text-sm font-medium">Gap Opportunity</span>
               </div>
               <div className="text-sm text-white/80 leading-relaxed">
-                 {competitors[0]?.weaknesses[0] || "Analyze to find gaps"}
+                 {competitors[0]?.weaknesses?.[0] || "Analyze to find gaps"}
               </div>
            </GlassPane>
         </div>
@@ -198,7 +199,7 @@ const CompetitorCard: React.FC<{ comp: CompetitorEntity, index: number }> = ({ c
               <Swords className="w-3 h-3" /> Strategic Weaknesses
             </div>
             <ul className="space-y-1">
-              {comp.weaknesses.map((w, i) => (
+              {comp.weaknesses?.map((w, i) => (
                 <li key={i} className="text-xs text-emerald-200/80 flex items-start gap-2">
                   <span className="mt-1 w-1 h-1 rounded-full bg-emerald-500" />
                   {w}
@@ -212,7 +213,7 @@ const CompetitorCard: React.FC<{ comp: CompetitorEntity, index: number }> = ({ c
               <ShieldAlert className="w-3 h-3" /> Core Strengths
             </div>
             <ul className="space-y-1">
-              {comp.strengths.map((s, i) => (
+              {comp.strengths?.map((s, i) => (
                 <li key={i} className="text-xs text-rose-200/80 flex items-start gap-2">
                   <span className="mt-1 w-1 h-1 rounded-full bg-rose-500" />
                   {s}

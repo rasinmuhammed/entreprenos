@@ -2,10 +2,11 @@
 import React, { useState, useRef } from 'react';
 import { WidgetData, WidgetType } from '../../types';
 import { GlassPane } from '../ui/GlassPane';
-import { TrendingUp, TrendingDown, AlertTriangle, List, Layout, MapPin, Globe, ShieldAlert, GitBranch, CheckCircle2, Circle, ArrowRight, Plug, Flag, ChevronDown, ChevronUp, MessageSquare, Loader2, Upload, Maximize2, Target, Coins, Scale, Star, Navigation, MoreHorizontal, Rocket, Lightbulb, Zap, Users, ShoppingBag, BarChart3, PieChart, Briefcase } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, List, Layout, MapPin, Globe, ShieldAlert, GitBranch, CheckCircle2, Circle, ArrowRight, Plug, Flag, ChevronDown, ChevronUp, MessageSquare, Loader2, Upload, Maximize2, Target, Coins, Scale, Star, Navigation, MoreHorizontal, Rocket, Lightbulb, Zap, Users, ShoppingBag, BarChart3, PieChart, Briefcase, Cpu } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyzeSalesData, fetchBusinessProfileDetails } from '../../services/geminiService';
+import { GenerativeWidget } from './GenerativeWidget';
 
 export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
   const { startBoardRoomSession, context, appendWidgets, updateWidgetContent } = useAppStore();
@@ -74,12 +75,23 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
      updateWidgetContent(widget.id, { ...widget.content, columns: newColumns });
   };
 
-  if (!widget || !widget.content) return null;
+  if (!widget || (!widget.content && !widget.genUISchema)) return null;
   const safeRender = (val: any) => (typeof val === 'object' && val !== null) ? val.toString() : val;
 
   // --- WIDGET RENDERERS ---
 
   switch (widget.type) {
+    case WidgetType.GENERATIVE_UI:
+      return (
+        <div className="h-full relative group">
+           {/* Generative Badge */}
+           <div className="absolute top-2 right-2 z-20 flex items-center gap-1 bg-tech-purple/20 px-2 py-0.5 rounded text-[9px] font-mono text-tech-purple border border-tech-purple/20 pointer-events-none">
+             <Cpu className="w-3 h-3" /> GEN_UI
+           </div>
+           <GenerativeWidget schema={widget.genUISchema!} />
+        </div>
+      );
+
     case WidgetType.METRIC_CARD:
       return (
         <GlassPane 

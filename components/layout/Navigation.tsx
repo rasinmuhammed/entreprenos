@@ -1,16 +1,21 @@
+
 import React from 'react';
 import { useAppStore } from '../../store/appStore';
 import { View } from '../../types';
-import { LayoutDashboard, Users, BookMarked, Hexagon, Target, Command, Map } from 'lucide-react';
+import { LayoutDashboard, Users, BookMarked, Target, Command, Map, PieChart, Presentation, Megaphone, Gamepad2, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const Navigation: React.FC = () => {
-  const { currentView, setView } = useAppStore();
+  const { currentView, setView, setVisionModalOpen } = useAppStore();
 
   const navItems = [
     { id: View.DASHBOARD, label: 'Command', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { id: View.MARKETING, label: 'Growth', icon: <Megaphone className="w-5 h-5" /> },
+    { id: View.SIMULATOR, label: 'Wargame', icon: <Gamepad2 className="w-5 h-5" /> },
     { id: View.LOCAL_INTEL, label: 'Map', icon: <Map className="w-5 h-5" /> },
     { id: View.COMPETITORS, label: 'Intel', icon: <Target className="w-5 h-5" /> },
+    { id: View.FINANCE, label: 'Finance', icon: <PieChart className="w-5 h-5" /> },
+    { id: View.PITCH_DECK, label: 'Pitch', icon: <Presentation className="w-5 h-5" /> },
     { id: View.BOARDROOM, label: 'Board', icon: <Users className="w-5 h-5" /> },
     { id: View.JOURNAL, label: 'Logbook', icon: <BookMarked className="w-5 h-5" /> },
   ];
@@ -21,14 +26,26 @@ export const Navigation: React.FC = () => {
         <Command className="w-5 h-5 text-white" />
       </div>
 
-      <div className="flex flex-col gap-8 w-full px-3">
+      {/* Vision Trigger */}
+      <button 
+        onClick={() => setVisionModalOpen(true)}
+        className="mb-6 p-3 rounded-xl bg-tech-purple/20 hover:bg-tech-purple/40 border border-tech-purple/30 text-tech-purple hover:text-white transition-all group relative"
+        title="Omniscient Vision"
+      >
+        <Eye className="w-5 h-5" />
+        <div className="absolute left-14 top-2 bg-nebula-950 px-2 py-1 rounded text-[9px] font-mono whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-white/10">
+          VISION INPUT
+        </div>
+      </button>
+
+      <div className="flex flex-col gap-6 w-full px-3 overflow-y-auto custom-scrollbar flex-1 pb-4">
         {navItems.map((item) => {
           const isActive = currentView === item.id;
           return (
             <button
               key={item.id}
               onClick={() => setView(item.id)}
-              className="relative group flex flex-col items-center gap-1.5"
+              className="relative group flex flex-col items-center gap-1.5 shrink-0"
             >
               <div className={`
                 relative p-3 rounded-xl transition-all duration-300 z-10

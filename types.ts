@@ -10,13 +10,34 @@ export enum WidgetType {
   STARTUP_JOURNEY = "STARTUP_JOURNEY",
   LOCATION_MAP = "LOCATION_MAP",
   GROWTH_TACTICS = "GROWTH_TACTICS",
-  // New Adaptive Widgets
   SWOT_TACTICAL = "SWOT_TACTICAL",
   INVENTORY_TRACKER = "INVENTORY_TRACKER",
   SUBSCRIPTION_METRICS = "SUBSCRIPTION_METRICS",
-  CLIENT_PIPELINE = "CLIENT_PIPELINE"
+  CLIENT_PIPELINE = "CLIENT_PIPELINE",
+  GENERATIVE_UI = "GENERATIVE_UI"
 }
 
+// --- NEW ACCESSIBILITY TYPES ---
+export enum AccessibilityMode {
+  STANDARD = "STANDARD",
+  SONIC_VIEW = "SONIC_VIEW",       // For Blind Users (Linear, Audio-First)
+  FOCUS_SHIELD = "FOCUS_SHIELD",   // For Neurodivergent (Minimalist, Tunnel Vision)
+  SENTIMENT_HUD = "SENTIMENT_HUD"  // For Deaf (Visual Tone Indicators)
+}
+
+export interface LiveConnectionState {
+  isConnected: boolean;
+  isStreaming: boolean;
+  isThinking: boolean;
+  volumeLevel: number; // 0-1 for visualizer
+}
+
+export interface LiveConfig {
+  voiceName: string;
+  systemInstruction: string;
+}
+
+// --- EXISTING TYPES ---
 export enum AgentPersona {
   CEO = "CEO",
   CFO = "CFO",
@@ -28,7 +49,11 @@ export enum View {
   BOARDROOM = "BOARDROOM",
   JOURNAL = "JOURNAL",
   COMPETITORS = "COMPETITORS",
-  LOCAL_INTEL = "LOCAL_INTEL"
+  LOCAL_INTEL = "LOCAL_INTEL",
+  FINANCE = "FINANCE",
+  PITCH_DECK = "PITCH_DECK",
+  MARKETING = "MARKETING",
+  SIMULATOR = "SIMULATOR"
 }
 
 export enum LogType {
@@ -36,6 +61,24 @@ export enum LogType {
   DECISION = "DECISION",
   LESSON = "LESSON",
   MISTAKE = "MISTAKE"
+}
+
+export type GenUIElementType = "layout" | "card" | "text" | "button" | "metric" | "chart" | "list" | "image" | "divider";
+
+export interface GenUIElement {
+  id: string;
+  type: GenUIElementType;
+  props?: Record<string, any>;
+  children?: GenUIElement[];
+}
+
+export interface WidgetData {
+  id: string;
+  type: WidgetType;
+  title: string;
+  gridArea?: string;
+  content: any;
+  genUISchema?: GenUIElement;
 }
 
 export interface LogEntry {
@@ -46,14 +89,6 @@ export interface LogEntry {
   tags: string[];
 }
 
-export interface WidgetData {
-  id: string;
-  type: WidgetType;
-  title: string;
-  gridArea?: string;
-  content: any;
-}
-
 export interface BusinessContext {
   name: string;
   businessName: string;
@@ -62,6 +97,7 @@ export interface BusinessContext {
   stage: string;
   location?: string;
   generatedAt: number;
+  accessibilityMode: AccessibilityMode; // Added to context
 }
 
 export interface ChatMessage {
@@ -69,6 +105,7 @@ export interface ChatMessage {
   sender: 'user' | 'system' | AgentPersona;
   text: string;
   timestamp: number;
+  thoughtSignature?: string;
 }
 
 export interface BoardRoomState {
@@ -77,21 +114,20 @@ export interface BoardRoomState {
   consensus: string | null;
   messages: ChatMessage[];
   isThinking: boolean;
+  currentThought?: string;
 }
 
 export interface CompetitorEntity {
   name: string;
   website?: string;
   description: string;
-  marketShare: number; // 0-100 estimate
+  marketShare: number;
   threatLevel: "Low" | "Medium" | "High";
   strengths: string[];
   weaknesses: string[];
   pricingModel: string;
-  strategicMove: string; // "Launching AI features", "Aggressive hiring", etc.
+  strategicMove: string;
 }
-
-// -- New Intelligence Gathering Types --
 
 export interface EntityDossier {
   name: string;
@@ -101,15 +137,15 @@ export interface EntityDossier {
   industry: string;
   website?: string;
   description: string;
-  location?: string; // e.g. "Brooklyn, NY" or "Global"
+  location?: string;
 }
 
 export interface DigitalAudit {
-  presenceScore: number; // 0-100
+  presenceScore: number;
   websiteStatus: "Active" | "Missing" | "Outdated";
   googleMapsStatus: "Claimed" | "Unclaimed" | "Missing";
   socialPresence: "Strong" | "Weak" | "None";
-  missingAssets: string[]; // ["Google Business Profile", "Instagram"]
+  missingAssets: string[];
 }
 
 export interface SentimentReport {
@@ -137,14 +173,12 @@ export interface ResearchGathered {
   profile: BusinessProfile | null;
 }
 
-// -- Local Intelligence Types --
-
 export interface NearbyEntity {
   name: string;
-  type: string; // e.g., "Hospital", "University"
+  type: string;
   distance: string;
   impactLevel: "High" | "Medium" | "Low";
-  reasoning: string; // "Hospital staff need quick coffee/lunch"
+  reasoning: string;
 }
 
 export interface LocationStrategy {
@@ -156,6 +190,109 @@ export interface LocationStrategy {
 export interface LocationAnalysis {
   nearbyEntities: NearbyEntity[];
   strategies: LocationStrategy[];
-  footTrafficScore: number; // 0-100
+  footTrafficScore: number;
   summary: string;
+}
+
+export interface FinancialInputs {
+  cashOnHand: number;
+  monthlyBurn: number;
+  monthlyRevenue: number;
+  growthRate: number;
+}
+
+export interface FinancialScenario {
+  name: "Conservative" | "Aggressive" | "Survival";
+  runwayMonths: number;
+  profitabilityDate: string | "Never";
+  advice: string;
+  projectionData: number[];
+}
+
+export interface FinancialHealth {
+  scenarios: FinancialScenario[];
+  cfoCritique: string;
+  burnRateAssessment: "Healthy" | "High" | "Critical";
+}
+
+export interface PitchSlide {
+  title: string;
+  subtitle: string;
+  contentPoints: string[];
+  visualPrompt: string;
+  speakerNotes: string;
+}
+
+export interface PitchDeck {
+  slides: PitchSlide[];
+  generatedAt: number;
+}
+
+export type MarketingChannel = "LinkedIn" | "Twitter" | "Instagram" | "Email" | "Blog";
+
+export interface ContentPost {
+  id: string;
+  channel: MarketingChannel;
+  week: number;
+  title: string;
+  copy: string;
+  visualPrompt: string;
+  hashtags: string[];
+}
+
+export interface MarketingCampaign {
+  id: string;
+  name: string;
+  goal: string;
+  generatedAt: number;
+  strategySummary: string;
+  posts: ContentPost[];
+}
+
+export interface CrisisChoice {
+  id: "A" | "B" | "C";
+  title: string;
+  description: string;
+  riskLevel: "Low" | "Medium" | "High";
+}
+
+export interface CrisisEvent {
+  id: string;
+  title: string;
+  description: string;
+  type: "Financial" | "PR" | "Market" | "Operational";
+  choices: CrisisChoice[];
+}
+
+export interface SimulationResult {
+  outcomeTitle: string;
+  outcomeDescription: string;
+  financialImpact: number;
+  reputationImpact: number;
+  survived: boolean;
+}
+
+export interface SimulationState {
+  isActive: boolean;
+  currentEvent: CrisisEvent | null;
+  history: { event: CrisisEvent, choice: CrisisChoice, result: SimulationResult }[];
+  cashBalance: number;
+  reputationScore: number;
+  month: number;
+}
+
+export interface VisionAnalysis {
+  detectedType: "COMPETITOR_PRICING" | "SKETCH_WIREFRAME" | "PHYSICAL_INVENTORY" | "UNKNOWN";
+  summary: string;
+  suggestedActions: string[];
+  dataPayload: any;
+}
+
+export interface SaaSOnboardingData {
+  businessName: string;
+  industry: string;
+  location: string;
+  description: string;
+  goals: string[];
+  integrations: string[];
 }
