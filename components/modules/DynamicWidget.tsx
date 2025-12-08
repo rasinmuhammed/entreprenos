@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { WidgetData, WidgetType } from '../../types';
 import { GlassPane } from '../ui/GlassPane';
-import { TrendingUp, TrendingDown, AlertTriangle, List, Layout, MapPin, Globe, ShieldAlert, GitBranch, CheckCircle2, Circle, ArrowRight, Plug, Flag, ChevronDown, ChevronUp, MessageSquare, Loader2, Upload, Maximize2, Target, Coins, Scale, Star, Navigation, MoreHorizontal, Rocket, Lightbulb, Zap, Users, ShoppingBag, BarChart3, PieChart, Briefcase, Cpu, Mail } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, List, Layout, MapPin, Globe, ShieldAlert, GitBranch, CheckCircle2, Circle, ArrowRight, Plug, Flag, ChevronDown, ChevronUp, MessageSquare, Loader2, Upload, Maximize2, Target, Coins, Scale, Star, Navigation, MoreHorizontal, Rocket, Lightbulb, Zap, Users, ShoppingBag, BarChart3, PieChart, Briefcase, Cpu, Mail, ExternalLink, Linkedin, Twitter, Instagram, Facebook } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyzeSalesData, fetchBusinessProfileDetails } from '../../services/geminiService';
@@ -105,6 +105,99 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
            {/* In Dashboard View, we might show a mini-list, but let's assume full interactivity */}
            <EmailClient />
         </div>
+      );
+
+    case WidgetType.DIGITAL_PRESENCE:
+      const { presenceScore, websiteUrl, googleMapsUrl, socialLinks, reviews, missingAssets } = widget.content;
+      return (
+        <GlassPane className="h-full p-6" hoverEffect>
+           <div className="flex items-center gap-2 mb-6">
+             <Globe className="w-4 h-4 text-tech-cyan" />
+             <h3 className="text-white font-medium text-sm">{widget.title}</h3>
+           </div>
+
+           <div className="flex items-center gap-6 mb-6">
+              <div className="relative w-20 h-20 flex items-center justify-center">
+                 <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="40" cy="40" r="36" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/10" />
+                    <circle cx="40" cy="40" r="36" stroke="currentColor" strokeWidth="6" fill="transparent" 
+                       strokeDasharray={226}
+                       strokeDashoffset={226 - (226 * (presenceScore || 0) / 100)}
+                       className={`${(presenceScore || 0) > 70 ? 'text-tech-emerald' : 'text-tech-amber'} transition-all duration-1000`}
+                    />
+                 </svg>
+                 <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-light text-white font-mono">{presenceScore || 0}</span>
+                    <span className="text-[8px] text-white/40 uppercase">Score</span>
+                 </div>
+              </div>
+              
+              <div className="flex-1 space-y-2">
+                 <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Website</span>
+                    {websiteUrl ? (
+                       <a href={websiteUrl} target="_blank" className="flex items-center gap-1 text-tech-cyan hover:underline decoration-tech-cyan/30">
+                          Active <ExternalLink className="w-3 h-3" />
+                       </a>
+                    ) : (
+                       <span className="text-rose-400 font-mono text-[10px]">MISSING</span>
+                    )}
+                 </div>
+                 <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Google Maps</span>
+                    {googleMapsUrl ? (
+                       <a href={googleMapsUrl} target="_blank" className="flex items-center gap-1 text-tech-cyan hover:underline decoration-tech-cyan/30">
+                          Claimed <CheckCircle2 className="w-3 h-3" />
+                       </a>
+                    ) : (
+                       <span className="text-rose-400 font-mono text-[10px]">UNCLAIMED</span>
+                    )}
+                 </div>
+                 {reviews && reviews.length > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                       <span className="text-white/60">Rating</span>
+                       <span className="text-tech-amber flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-current" /> {reviews[0].rating} ({reviews[0].count})
+                       </span>
+                    </div>
+                 )}
+              </div>
+           </div>
+
+           {socialLinks && socialLinks.length > 0 && (
+              <div className="mb-4">
+                 <div className="text-[10px] text-white/30 uppercase font-mono mb-2">Social Graph</div>
+                 <div className="flex gap-2">
+                    {socialLinks.map((link: any, idx: number) => {
+                       let Icon = Globe;
+                       if (link.platform.toLowerCase().includes('linked')) Icon = Linkedin;
+                       if (link.platform.toLowerCase().includes('twitter')) Icon = Twitter;
+                       if (link.platform.toLowerCase().includes('instagram')) Icon = Instagram;
+                       if (link.platform.toLowerCase().includes('facebook')) Icon = Facebook;
+                       
+                       return (
+                          <a key={idx} href={link.url} target="_blank" title={link.platform} className="p-2 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-tech-cyan/30 rounded-lg text-white/60 hover:text-white transition-all">
+                             <Icon className="w-4 h-4" />
+                          </a>
+                       );
+                    })}
+                 </div>
+              </div>
+           )}
+
+           {missingAssets && missingAssets.length > 0 && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg mt-auto">
+                 <div className="text-[10px] text-rose-400 font-mono uppercase mb-1 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" /> Missing Assets
+                 </div>
+                 <div className="flex flex-wrap gap-1">
+                    {missingAssets.map((asset: string, i: number) => (
+                       <span key={i} className="text-[10px] px-1.5 py-0.5 bg-rose-500/10 text-rose-300 rounded border border-rose-500/10">{asset}</span>
+                    ))}
+                 </div>
+              </div>
+           )}
+        </GlassPane>
       );
 
     case WidgetType.METRIC_CARD:
@@ -492,7 +585,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
       );
 
     case WidgetType.LOCATION_MAP:
-      const { address, rating, reviews, coordinates, mapUrl } = widget.content;
+      const { address, rating, coordinates, mapUrl } = widget.content;
       return (
         <GlassPane className="h-full p-0 flex flex-col relative overflow-hidden" hoverEffect>
            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />

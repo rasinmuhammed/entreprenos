@@ -133,7 +133,7 @@ export const MarketingEngine: React.FC = () => {
              {/* CONTENT GRID */}
              <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 pb-20">
-                   {activeCampaign.posts.map((post) => (
+                   {activeCampaign.posts?.map((post) => (
                      <motion.div
                        key={post.id}
                        initial={{ opacity: 0, y: 20 }}

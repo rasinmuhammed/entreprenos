@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { GlassPane } from '../ui/GlassPane';
@@ -115,7 +116,7 @@ export const LocalIntelligence: React.FC = () => {
             </div>
 
             <div className="relative z-10 grid grid-cols-2 gap-4 h-full">
-               {locationAnalysis.nearbyEntities.map((entity, idx) => (
+               {locationAnalysis.nearbyEntities?.map((entity, idx) => (
                  <motion.div 
                    key={idx}
                    initial={{ opacity: 0, scale: 0.8 }}
@@ -173,7 +174,7 @@ export const LocalIntelligence: React.FC = () => {
          <Zap className="w-4 h-4 text-tech-amber" /> Hyper-Local Strategies
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-         {locationAnalysis.strategies.map((strategy, idx) => (
+         {locationAnalysis.strategies?.map((strategy, idx) => (
             <motion.div
                key={idx}
                initial={{ opacity: 0, y: 20 }}

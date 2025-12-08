@@ -120,7 +120,7 @@ export const PitchDeckGenerator: React.FC = () => {
              <h1 className="text-5xl font-light text-white mb-12 leading-tight">{slide.title}</h1>
              
              <div className="grid grid-cols-1 gap-6 text-left">
-               {slide.contentPoints.map((point, idx) => (
+               {slide.contentPoints?.map((point: any, idx: number) => (
                  <div key={idx} className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
                     <div className="w-1.5 h-1.5 rounded-full bg-tech-purple mt-2 shrink-0" />
                     <span className="text-lg text-white/80 font-light">{point}</span>

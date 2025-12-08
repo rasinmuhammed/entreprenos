@@ -132,7 +132,7 @@ export const FinancialForecaster: React.FC = () => {
                 <div className="flex justify-between items-center mb-8">
                    <h3 className="text-xl font-light text-white">Projected Cash Balance (12 Months)</h3>
                    <div className="flex bg-white/5 p-1 rounded-lg">
-                      {financialHealth.scenarios.map((s, idx) => (
+                      {financialHealth.scenarios?.map((s, idx) => (
                         <button
                           key={s.name}
                           onClick={() => setActiveScenario(idx)}
@@ -147,8 +147,8 @@ export const FinancialForecaster: React.FC = () => {
                 </div>
 
                 <div className="flex-1 flex items-end justify-between gap-2 px-4 relative z-10">
-                   {currentScenario?.projectionData.map((val, idx) => {
-                     const maxVal = Math.max(...currentScenario.projectionData);
+                   {currentScenario?.projectionData?.map((val, idx) => {
+                     const maxVal = Math.max(...(currentScenario?.projectionData || []));
                      const heightPct = Math.max((val / maxVal) * 100, 5); // min 5% height
                      return (
                        <div key={idx} className="flex-1 flex flex-col justify-end group relative">

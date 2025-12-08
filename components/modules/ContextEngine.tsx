@@ -625,7 +625,7 @@ export const ContextEngine: React.FC = () => {
                    </h3>
 
                    <div className="space-y-3">
-                     {research.questions[currentQuestionIndex].options.map((opt, idx) => (
+                     {research.questions[currentQuestionIndex].options?.map((opt, idx) => (
                        <button
                          key={idx}
                          onClick={() => {

@@ -15,7 +15,8 @@ export enum WidgetType {
   SUBSCRIPTION_METRICS = "SUBSCRIPTION_METRICS",
   CLIENT_PIPELINE = "CLIENT_PIPELINE",
   GENERATIVE_UI = "GENERATIVE_UI",
-  EMAIL_CLIENT = "EMAIL_CLIENT"
+  EMAIL_CLIENT = "EMAIL_CLIENT",
+  DIGITAL_PRESENCE = "DIGITAL_PRESENCE"
 }
 
 // --- ACCESSIBILITY MODES ---
@@ -207,8 +208,12 @@ export interface EntityDossier {
 export interface DigitalAudit {
   presenceScore: number;
   websiteStatus: "Active" | "Missing" | "Outdated";
+  websiteUrl?: string;
   googleMapsStatus: "Claimed" | "Unclaimed" | "Missing";
+  googleMapsUrl?: string;
   socialPresence: "Strong" | "Weak" | "None";
+  socialLinks?: { platform: string; url: string; followers?: string }[];
+  reviews?: { count: number; rating: number; source: string }[];
   missingAssets: string[];
 }
 

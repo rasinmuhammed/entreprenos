@@ -5,10 +5,40 @@ import { BusinessContext, InventoryAlert } from "../../types";
 const getClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const extractJSON = (text: string) => {
-  const firstBrace = text.indexOf('[');
-  const lastBrace = text.lastIndexOf(']');
-  if (firstBrace === -1 || lastBrace === -1) throw new Error("No JSON array found");
-  return JSON.parse(text.substring(firstBrace, lastBrace + 1));
+  // 1. Strip Markdown Code Blocks
+  const cleanText = text.replace(/```json/g, '').replace(/```/g, '');
+
+  // 2. Find start index for Array
+  const startIndex = cleanText.indexOf('[');
+  if (startIndex === -1) throw new Error("No JSON array found");
+
+  // 3. Balance Counting
+  let balance = 0;
+  let endIndex = -1;
+  let inString = false;
+  let escape = false;
+
+  for (let i = startIndex; i < cleanText.length; i++) {
+    const char = cleanText[i];
+    if (escape) { escape = false; continue; }
+    if (char === '\\') { escape = true; continue; }
+    if (char === '"') { inString = !inString; continue; }
+    
+    if (!inString) {
+      if (char === '[') balance++;
+      else if (char === ']') {
+        balance--;
+        if (balance === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+  }
+
+  if (endIndex === -1) endIndex = cleanText.lastIndexOf(']'); // Fallback
+
+  return JSON.parse(cleanText.substring(startIndex, endIndex + 1));
 };
 
 export const scanShelf = async (base64Frame: string, context: BusinessContext): Promise<InventoryAlert[]> => {

@@ -5,10 +5,40 @@ import { MicroTask } from "../../types";
 const getClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const extractJSON = (text: string) => {
-  const firstBrace = text.indexOf('[');
-  const lastBrace = text.lastIndexOf(']');
-  if (firstBrace === -1 || lastBrace === -1) throw new Error("No JSON array found");
-  return JSON.parse(text.substring(firstBrace, lastBrace + 1));
+  // 1. Strip Markdown Code Blocks
+  const cleanText = text.replace(/```json/g, '').replace(/```/g, '');
+
+  // 2. Find start index for Array
+  const startIndex = cleanText.indexOf('[');
+  if (startIndex === -1) throw new Error("No JSON array found");
+
+  // 3. Balance Counting
+  let balance = 0;
+  let endIndex = -1;
+  let inString = false;
+  let escape = false;
+
+  for (let i = startIndex; i < cleanText.length; i++) {
+    const char = cleanText[i];
+    if (escape) { escape = false; continue; }
+    if (char === '\\') { escape = true; continue; }
+    if (char === '"') { inString = !inString; continue; }
+    
+    if (!inString) {
+      if (char === '[') balance++;
+      else if (char === ']') {
+        balance--;
+        if (balance === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+  }
+
+  if (endIndex === -1) endIndex = cleanText.lastIndexOf(']'); // Fallback
+
+  return JSON.parse(cleanText.substring(startIndex, endIndex + 1));
 };
 
 export const explodeTask = async (taskName: string): Promise<MicroTask[]> => {
@@ -40,11 +70,11 @@ export const explodeTask = async (taskName: string): Promise<MicroTask[]> => {
     console.error("Task Explosion Failed", err);
     // Fallback manual explosion
     return [
-      { id: "1", text: "Open your workspace", isComplete: false },
-      { id: "2", text: "Define the first action", isComplete: false },
-      { id: "3", text: "Do the first action for 2 mins", isComplete: false },
-      { id: "4", text: "Check progress", isComplete: false },
-      { id: "5", text: "Finish or take a break", isComplete: false }
+      { id: "1", "text": "Open your workspace", isComplete: false },
+      { id: "2", "text": "Define the first action", isComplete: false },
+      { id: "3", "text": "Do the first action for 2 mins", isComplete: false },
+      { id: "4", "text": "Check progress", isComplete: false },
+      { id: "5", "text": "Finish or take a break", isComplete: false }
     ];
   }
 };

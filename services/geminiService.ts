@@ -4,19 +4,72 @@ import { WidgetType, AgentPersona, EntityDossier, SentimentReport, ConsultationQ
 
 const getClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-// --- Helper: Clean JSON extraction ---
+// --- Helper: Robust JSON extraction with Balance Counter ---
 const extractJSON = (text: string) => {
-  const firstBrace = text.indexOf('{');
-  const lastBrace = text.lastIndexOf('}');
-  if (firstBrace === -1 || lastBrace === -1) {
-      const firstBracket = text.indexOf('[');
-      const lastBracket = text.lastIndexOf(']');
-      if (firstBracket !== -1 && lastBracket !== -1) {
-          return JSON.parse(text.substring(firstBracket, lastBracket + 1));
-      }
-      throw new Error("No JSON found");
+  // 1. Strip Markdown Code Blocks
+  const cleanText = text.replace(/```json/g, '').replace(/```/g, '');
+
+  // 2. Find start index
+  let startIndex = cleanText.indexOf('{');
+  let arrayStartIndex = cleanText.indexOf('[');
+  
+  let isObject = true;
+  if (startIndex === -1) {
+     if (arrayStartIndex === -1) throw new Error("No JSON found");
+     startIndex = arrayStartIndex;
+     isObject = false;
+  } else if (arrayStartIndex !== -1 && arrayStartIndex < startIndex) {
+     startIndex = arrayStartIndex;
+     isObject = false;
   }
-  return JSON.parse(text.substring(firstBrace, lastBrace + 1));
+
+  // 3. Balance Counting to find the matching end index
+  let openChar = isObject ? '{' : '[';
+  let closeChar = isObject ? '}' : ']';
+  
+  let balance = 0;
+  let endIndex = -1;
+  let inString = false;
+  let escape = false;
+
+  for (let i = startIndex; i < cleanText.length; i++) {
+    const char = cleanText[i];
+    
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    
+    if (char === '\\') {
+      escape = true;
+      continue;
+    }
+    
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    
+    if (!inString) {
+      if (char === openChar) {
+        balance++;
+      } else if (char === closeChar) {
+        balance--;
+        if (balance === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+  }
+
+  if (endIndex === -1) {
+     // Fallback to simple lastIndexOf if balance fails (e.g. malformed or partial)
+     endIndex = cleanText.lastIndexOf(closeChar);
+  }
+
+  const jsonStr = cleanText.substring(startIndex, endIndex + 1);
+  return JSON.parse(jsonStr);
 };
 
 // --- ADHD MICRO SPRINTER: Explode Task ---
@@ -48,11 +101,11 @@ export const explodeTask = async (taskName: string): Promise<MicroTask[]> => {
   } catch (err) {
     console.error("Task Explosion Failed", err);
     return [
-      { id: "1", text: "Sit down at your workspace", isComplete: false, durationMinutes: 1 },
-      { id: "2", text: "Open the relevant app/doc", isComplete: false, durationMinutes: 1 },
-      { id: "3", text: "Write the first sentence/entry", isComplete: false, durationMinutes: 2 },
-      { id: "4", text: "Do 5 minutes of focused work", isComplete: false, durationMinutes: 5 },
-      { id: "5", text: "Check your progress", isComplete: false, durationMinutes: 1 }
+      { id: "1", "text": "Sit down at your workspace", isComplete: false, durationMinutes: 1 },
+      { id: "2", "text": "Open the relevant app/doc", isComplete: false, durationMinutes: 1 },
+      { id: "3", "text": "Write the first sentence/entry", isComplete: false, durationMinutes: 2 },
+      { id: "4", "text": "Do 5 minutes of focused work", isComplete: false, durationMinutes: 5 },
+      { id: "5", "text": "Check your progress", isComplete: false, durationMinutes: 1 }
     ];
   }
 };
@@ -211,22 +264,34 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 export const generateGenerativeWidget = async (context: BusinessContext): Promise<GenUIElement> => {
   const ai = getClient();
   const prompt = `
-    TASK: Architect a CUSTOM UI WIDGET for: "${context.businessName}" (${context.industry}).
-    GOAL: Create a specialized tool that doesn't exist in standard dashboards.
-    OUTPUT: JSON Schema representing the UI layout.
-    ELEMENT TYPES: layout (row/col), card, text (h1/h2/body/metric), button, metric, chart, list, divider.
+    ROLE: World-Class UI/UX Architect for EntreprenOS.
+    CONTEXT: User runs "${context.businessName}" (${context.industry}).
+    TASK: Design a PREMIUM, HIGH-VALUE Custom Widget that solves a specific growth problem.
+    STYLE: "Nebula Glass" - Dark, Sleek, Data-Dense, Executive.
+    
+    REQUIREMENTS:
+    1. Do NOT create a generic list. Create a "Command Center" view.
+    2. Use 'layout' with 'grid' props for complex data.
+    3. Use 'chart' elements to visualize trends (e.g., Revenue Velocity, User Heatmap).
+    4. Use 'metric' elements with 'trend' indicators.
+    5. The widget should feel like a $10,000 consultant's dashboard.
 
-    OUTPUT JSON ONLY:
-    {
-      "id": "root", "type": "layout", "props": { "direction": "column", "gap": "6" },
-      "children": [ ... ]
-    }
+    AVAILABLE ELEMENTS:
+    - layout: { direction: 'row'|'col', gap: string, type: 'grid'|'flex' }
+    - card: { variant: 'glass'|'solid' }
+    - text: { variant: 'h1'|'h2'|'caption'|'metric', color: 'text-tech-cyan'|'text-white' }
+    - metric: { label: string, value: string, trend: number (positive/negative) }
+    - chart: { type: 'area'|'bar', data: number[], color: 'cyan'|'purple'|'emerald' }
+    - list: { items: [{ icon: string, title: string, subtitle: string, status: string }] }
+    - button: { label: string, action: string, variant: 'primary'|'ghost' }
+
+    OUTPUT JSON ONLY (GenUIElement Schema).
   `;
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: prompt,
-    config: { responseMimeType: "application/json" }
+    config: { responseMimeType: "application/json", temperature: 0.7 }
   });
 
   return extractJSON(response.text || "{}");
@@ -293,8 +358,30 @@ export const performDeepResearch = async (dossier: EntityDossier): Promise<Senti
   const ai = getClient();
   const prompt = `
     TASK: Perform a DIGITAL FOOTPRINT AUDIT on: "${dossier.name}" in "${dossier.location}".
-    ACTIONS: Check for Website, Maps Listing, Socials, Reviews.
-    OUTPUT JSON ONLY: SentimentReport structure with 'audit' field.
+    ACTIONS:
+    1. Search for official website.
+    2. Search for Google Maps/Business Profile listing.
+    3. Search for LinkedIn, Twitter, Instagram, Facebook profiles.
+    4. Look for online ratings/reviews count.
+    
+    OUTPUT JSON ONLY (SentimentReport structure):
+    {
+      "overallSentiment": "Positive"|"Neutral"|"Negative",
+      "keyPraises": ["..."],
+      "keyComplaints": ["..."],
+      "recentEvents": ["..."],
+      "audit": {
+        "presenceScore": 0-100 (integer),
+        "websiteStatus": "Active"|"Missing",
+        "websiteUrl": "url string or null",
+        "googleMapsStatus": "Claimed"|"Missing",
+        "googleMapsUrl": "url string or null",
+        "socialPresence": "Strong"|"Weak"|"None",
+        "socialLinks": [ { "platform": "LinkedIn", "url": "..." }, { "platform": "Twitter", "url": "..." } ],
+        "reviews": [ { "source": "Google", "rating": 4.5, "count": 120 } ],
+        "missingAssets": ["Website", "Instagram", etc]
+      }
+    }
   `;
 
   const response = await ai.models.generateContent({
@@ -333,6 +420,7 @@ export const constructDashboard = async (
     
     TASK: Generate the High-Level Dashboard Widgets.
     REQUIREMENTS:
+    - ALWAYS include "DIGITAL_PRESENCE" widget with title "Digital Footprint".
     - ALWAYS include "SWOT_TACTICAL".
     - ALWAYS include "EMAIL_CLIENT" (Title: "Inbox Command").
     - If presenceScore < 50: include ALERT_PANEL ("Invisible Digital Presence").
@@ -347,14 +435,26 @@ export const constructDashboard = async (
   });
 
   const dashboard = extractJSON(response.text || "{}");
+  
+  // Inject the custom widget
   if (dashboard.widgets) {
     dashboard.widgets.push({
       id: "gen-ui-custom",
       type: "GENERATIVE_UI",
-      title: "Specialized Tools",
+      title: "Growth Architect",
       genUISchema: customWidgetSchema,
       content: {}
     });
+    
+    // Fallback: If AI forgot Digital Presence, force it (Using the audit data)
+    if (!dashboard.widgets.find((w: any) => w.type === WidgetType.DIGITAL_PRESENCE) && sentiment.audit) {
+       dashboard.widgets.unshift({
+         id: "digital-presence-force",
+         type: WidgetType.DIGITAL_PRESENCE,
+         title: "Digital Footprint",
+         content: sentiment.audit
+       });
+    }
   }
 
   return dashboard;

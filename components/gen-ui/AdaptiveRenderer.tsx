@@ -38,7 +38,8 @@ export const AdaptiveRenderer: React.FC = () => {
       case View.COMMUNICATIONS: return <div className="h-full p-6"><EmailClient /></div>;
       case View.DASHBOARD:
       default:
-        return <GoldenGrid widgets={widgets} />;
+        // Defensive check for widgets in standard view
+        return widgets && widgets.length > 0 ? <GoldenGrid widgets={widgets} /> : null;
     }
   };
 
@@ -56,7 +57,8 @@ export const AdaptiveRenderer: React.FC = () => {
                  <Volume2 className="w-8 h-8" /> Active Screen Reader Feed
                </div>
                
-               {useAppStore.getState().inventoryAlerts.length > 0 && (
+               {/* Defensive map for inventory alerts */}
+               {useAppStore.getState().inventoryAlerts?.length > 0 && (
                   <div role="alert" className="border-4 border-red-500 p-4">
                      <h2 className="text-2xl font-bold text-red-500 mb-2">ALERTS</h2>
                      {useAppStore.getState().inventoryAlerts.map((a, i) => (
@@ -65,7 +67,8 @@ export const AdaptiveRenderer: React.FC = () => {
                   </div>
                )}
 
-               {widgets.map(w => (
+               {/* Defensive map for widgets */}
+               {widgets?.map(w => (
                   <div key={w.id} className="border-b-2 border-white/20 pb-4">
                      <h2 className="text-3xl font-bold mb-2">{w.title}</h2>
                      <p className="text-xl opacity-80">{(JSON.stringify(w.content) || "").slice(0, 100)}...</p>
