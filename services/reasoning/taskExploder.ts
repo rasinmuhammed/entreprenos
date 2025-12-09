@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { MicroTask } from "../../types";
 
@@ -53,7 +52,7 @@ export const explodeTask = async (taskName: string): Promise<MicroTask[]> => {
     
     OUTPUT JSON ARRAY ONLY:
     [
-      { "id": "1", "text": "Step 1 text", "isComplete": false },
+      { "id": "1", "title": "Step 1 title", "estMinutes": 5, "dependencies": [], "isComplete": false, "rewardPoints": 10 },
       ...
     ]
   `;
@@ -70,11 +69,11 @@ export const explodeTask = async (taskName: string): Promise<MicroTask[]> => {
     console.error("Task Explosion Failed", err);
     // Fallback manual explosion
     return [
-      { id: "1", "text": "Open your workspace", isComplete: false },
-      { id: "2", "text": "Define the first action", isComplete: false },
-      { id: "3", "text": "Do the first action for 2 mins", isComplete: false },
-      { id: "4", "text": "Check progress", isComplete: false },
-      { id: "5", "text": "Finish or take a break", isComplete: false }
+      { id: "1", title: "Open your workspace", estMinutes: 1, dependencies: [], isComplete: false, rewardPoints: 10 },
+      { id: "2", title: "Define the first action", estMinutes: 2, dependencies: [], isComplete: false, rewardPoints: 10 },
+      { id: "3", title: "Do the first action for 2 mins", estMinutes: 2, dependencies: [], isComplete: false, rewardPoints: 20 },
+      { id: "4", title: "Check progress", estMinutes: 1, dependencies: [], isComplete: false, rewardPoints: 10 },
+      { id: "5", title: "Finish or take a break", estMinutes: 5, dependencies: [], isComplete: false, rewardPoints: 50 }
     ];
   }
 };

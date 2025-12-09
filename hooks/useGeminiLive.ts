@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef } from 'react';
 import { liveBridge } from '../services/geminiLiveBridge';
 import { useAppStore } from '../store/appStore';
@@ -10,9 +9,9 @@ export const useGeminiLive = () => {
   const { liveState, setAccessibilityMode, accessibilityMode, context, setInventoryAlerts, addOracleAlert } = useAppStore();
   
   // Refs for timers
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const oracleIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const silenceTimerRef = useRef<number | null>(null);
+  const scanIntervalRef = useRef<number | null>(null);
+  const oracleIntervalRef = useRef<number | null>(null);
 
   const connect = useCallback(async (persona: 'Standard' | 'Helpful' | 'Direct' = 'Standard') => {
     await liveBridge.connect({
@@ -59,7 +58,7 @@ export const useGeminiLive = () => {
     }
 
     // Check every 5 minutes (mocked here as 30s for demo)
-    oracleIntervalRef.current = setInterval(async () => {
+    oracleIntervalRef.current = window.setInterval(async () => {
        const result = await scanEnvironment(context);
        result.alerts.forEach(alert => {
           if (alert.severity === 'high') {
@@ -84,9 +83,9 @@ export const useGeminiLive = () => {
     // If volume is low (< 0.01) for 45s, nudge user
     if (liveState.volumeLevel < 0.01) {
        if (!silenceTimerRef.current) {
-         silenceTimerRef.current = setTimeout(() => {
+         silenceTimerRef.current = window.setTimeout(() => {
             const currentStep = useAppStore.getState().focusSession.microSteps[useAppStore.getState().focusSession.currentStepIndex];
-            const task = currentStep ? currentStep.text : "your task";
+            const task = currentStep ? currentStep.title : "your task";
             liveBridge.sendText(`The user has been silent for 45 seconds. Nudge them gently to get back to: ${task}`);
          }, 45000);
        }
@@ -111,7 +110,7 @@ export const useGeminiLive = () => {
     }
 
     // Scan every 10 seconds
-    scanIntervalRef.current = setInterval(async () => {
+    scanIntervalRef.current = window.setInterval(async () => {
        const videoEl = document.querySelector('video');
        if (videoEl && !videoEl.paused) {
           const canvas = document.createElement('canvas');
@@ -137,7 +136,7 @@ export const useGeminiLive = () => {
   // Video Frame Capture Loop for Context (General)
   useEffect(() => {
     if (!liveState.isConnected) return;
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
        // liveBridge.sendVideoFrame(base64);
     }, 1000);
     return () => clearInterval(interval);

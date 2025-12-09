@@ -76,7 +76,18 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
      updateWidgetContent(widget.id, { ...widget.content, columns: newColumns });
   };
 
-  if (!widget || (!widget.content && !widget.genUISchema && widget.type !== WidgetType.EMAIL_CLIENT)) return null;
+  if (!widget) return null;
+  
+  // Defensive: If content is missing, show error card instead of nothing
+  if (!widget.content && !widget.genUISchema && widget.type !== WidgetType.EMAIL_CLIENT) {
+     return (
+        <GlassPane className="h-full p-6 flex flex-col items-center justify-center text-center border-dashed border-white/20">
+           <AlertTriangle className="w-8 h-8 text-white/20 mb-2" />
+           <div className="text-xs text-white/40 font-mono">Data Corruption</div>
+           <div className="text-[10px] text-white/20">{widget.title}</div>
+        </GlassPane>
+     );
+  }
   
   const safeRender = (val: any) => {
     if (typeof val === 'object' && val !== null) {
@@ -441,7 +452,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
       );
 
     case WidgetType.KANBAN_BOARD:
-      const columns = Array.isArray(widget.content.columns) ? widget.content.columns : [];
+      const kanbanColumns = Array.isArray(widget.content.columns) ? widget.content.columns : [];
       return (
         <GlassPane className="h-full p-0 flex flex-col" hoverEffect={false}>
           <div className="p-4 border-b border-white/5 flex items-center justify-between">
@@ -452,7 +463,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
              <MoreHorizontal className="w-4 h-4 text-white/20" />
           </div>
           <div className="flex-1 p-4 grid grid-cols-3 gap-3 overflow-hidden">
-             {columns.slice(0,3).map((col: any, colIdx: number) => (
+             {kanbanColumns.slice(0,3).map((col: any, colIdx: number) => (
                <div key={colIdx} className="flex flex-col h-full bg-white/5 rounded-lg border border-white/5">
                  <div className="p-2 border-b border-white/5 bg-white/5">
                    <div className="text-[9px] font-mono text-white/50 uppercase tracking-wider">{safeRender(col.title)}</div>

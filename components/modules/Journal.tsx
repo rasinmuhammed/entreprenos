@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { LogEntry, LogType } from '../../types';
@@ -114,7 +115,7 @@ export const Journal: React.FC = () => {
              )) : (
                <div className="text-center py-20 text-white/20">
                  <div className="text-4xl mb-2">📜</div>
-                 <p>No entries found.</p>
+                 <p>No entries found. Log your journey to see progress.</p>
                </div>
              )}
            </AnimatePresence>

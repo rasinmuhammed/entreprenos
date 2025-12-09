@@ -1,6 +1,7 @@
 
 import { create } from 'zustand';
-import { BusinessContext, WidgetData, BoardRoomState, ChatMessage, AgentPersona, ResearchGathered, ConsultationQuestion, BusinessProfile, View, LogEntry, LogType, CompetitorEntity, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, SimulationState, CrisisEvent, SimulationResult, CrisisChoice, AccessibilityMode, LiveConnectionState, InventoryAlert, FocusSession, Email, MicroTask, SentimentFrame, SpatialChatState, SpatialMessage, OracleAlert, MemoryFragment } from '../types';
+import { BusinessContext, WidgetData, BoardRoomState, ChatMessage, ResearchGathered, ConsultationQuestion, BusinessProfile, View, LogEntry, CompetitorEntity, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, SimulationState, CrisisEvent, SimulationResult, CrisisChoice, AccessibilityMode, LiveConnectionState, InventoryAlert, FocusSession, Email, MicroTask, SentimentFrame, BlindStrategistState, SpatialMessage, OracleAlert, MemoryFragment, ThemeMode, UIContext, LayoutConfig, AgentTask, MicroTaskPlan } from '../types';
+import { calculateLayout } from '../services/layoutEngine';
 
 interface AppState {
   hasStartedOnboarding: boolean;
@@ -10,21 +11,32 @@ interface AppState {
   widgets: WidgetData[];
   currentView: View;
   
+  // --- NEW: UI ENGINE STATE ---
+  uiContext: UIContext;
+  layoutConfig: LayoutConfig | null;
+
+  // --- NEW: AGENT TASKS ---
+  agentTasks: AgentTask[];
+
   // Accessibility & Live State
   accessibilityMode: AccessibilityMode;
+  themeMode: ThemeMode;
   liveState: LiveConnectionState;
 
   // Sentiment HUD (Deaf)
   sentimentStream: SentimentFrame[];
 
-  // Spatial Chat (Blind)
-  spatialChat: SpatialChatState;
+  // Blind Strategist (Blind)
+  blindStrategist: BlindStrategistState;
+  audioBriefs: Record<string, string>; 
 
   // Inventory Sonar
   inventoryAlerts: InventoryAlert[];
 
   // Focus Session (ADHD)
   focusSession: FocusSession;
+  microTaskPlan: MicroTaskPlan | null; // NEW: Structured Plan
+  lastActiveContext: string | null;
 
   // The Oracle (Predictive Alerts)
   oracleAlerts: OracleAlert[];
@@ -80,6 +92,7 @@ interface AppState {
 
   setContext: (context: BusinessContext) => void;
   setAccessibilityMode: (mode: AccessibilityMode) => void;
+  setThemeMode: (mode: ThemeMode) => void;
   setLiveState: (state: Partial<LiveConnectionState>) => void;
 
   setWidgets: (widgets: WidgetData[]) => void;
@@ -87,22 +100,28 @@ interface AppState {
   updateWidgetContent: (id: string, newContent: any) => void;
   setView: (view: View) => void;
 
+  // Layout Actions
+  updateUIContext: (updates: Partial<UIContext>) => void;
+
   // Sentiment Actions
   addSentimentFrame: (frame: SentimentFrame) => void;
   clearSentimentStream: () => void;
 
-  // Spatial Chat Actions
-  setSpatialImage: (imageUrl: string) => void;
-  addSpatialMessage: (msg: SpatialMessage) => void;
-  setSpatialProcessing: (isProcessing: boolean) => void;
+  // Blind Strategist Actions
+  setBlindStrategistImage: (imageUrl: string) => void;
+  addBlindStrategistMessage: (msg: SpatialMessage) => void;
+  setBlindStrategistProcessing: (isProcessing: boolean) => void;
+  setAudioBrief: (id: string, text: string) => void;
 
   // Inventory Actions
   setInventoryAlerts: (alerts: InventoryAlert[]) => void;
 
   // Focus Actions
   startFocusSession: (taskName: string, microSteps: MicroTask[]) => void;
+  setMicroTaskPlan: (plan: MicroTaskPlan) => void;
   completeMicroStep: () => void;
   endFocusSession: () => void;
+  setLastActiveContext: (ctx: string) => void;
 
   // Oracle Actions
   addOracleAlert: (alert: OracleAlert) => void;
@@ -164,18 +183,31 @@ interface AppState {
   clearBoardRoomMessages: () => void;
   setBoardRoomThinking: (isThinking: boolean) => void;
   setBoardRoomConsensus: (consensus: string | null) => void;
+  updateBoardRoomState: (updates: Partial<BoardRoomState>) => void;
   
   reset: () => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   hasStartedOnboarding: false,
   userRole: null,
 
   context: null,
   widgets: [],
   currentView: View.DASHBOARD,
+  
+  // Init UI Context
+  uiContext: {
+    userId: 'guest',
+    disabilityProfile: 'NEUROTYPICAL', // Default, updated on onboarding
+    device: 'DESKTOP',
+    cognitiveMode: 'STRATEGY_OVERVIEW'
+  },
+  layoutConfig: null,
+  agentTasks: [],
+
   accessibilityMode: AccessibilityMode.STANDARD,
+  themeMode: ThemeMode.NEBULA,
   liveState: {
     isConnected: false,
     isStreaming: false,
@@ -185,12 +217,13 @@ export const useAppStore = create<AppState>((set) => ({
 
   sentimentStream: [],
 
-  spatialChat: {
+  blindStrategist: {
     isActive: false,
     imageUrl: null,
     messages: [],
     isProcessing: false
   },
+  audioBriefs: {},
 
   inventoryAlerts: [],
 
@@ -200,8 +233,11 @@ export const useAppStore = create<AppState>((set) => ({
     microSteps: [],
     currentStepIndex: 0,
     streak: 0,
-    startTime: 0
+    startTime: 0,
+    lastStepChangeTime: 0
   },
+  microTaskPlan: null,
+  lastActiveContext: null,
 
   oracleAlerts: [],
   memories: [],
@@ -264,7 +300,25 @@ export const useAppStore = create<AppState>((set) => ({
   setUserRole: (role) => set({ userRole: role }),
 
   setContext: (context) => set({ context }),
-  setAccessibilityMode: (mode) => set({ accessibilityMode: mode }),
+  
+  setAccessibilityMode: (mode) => {
+    // Map legacy AccessibilityMode to DisabilityProfile
+    let profile: any = 'NEUROTYPICAL';
+    if (mode === AccessibilityMode.SONIC_VIEW) profile = 'BLIND';
+    if (mode === AccessibilityMode.FOCUS_SHIELD) profile = 'ADHD';
+    if (mode === AccessibilityMode.SENTIMENT_HUD) profile = 'DEAF';
+
+    set((state) => {
+      const newContext = { ...state.uiContext, disabilityProfile: profile };
+      return { 
+        accessibilityMode: mode,
+        uiContext: newContext,
+        layoutConfig: calculateLayout(newContext)
+      };
+    });
+  },
+
+  setThemeMode: (mode) => set({ themeMode: mode }),
   setLiveState: (state) => set((prev) => ({ liveState: { ...prev.liveState, ...state } })),
 
   setWidgets: (widgets) => set({ widgets }),
@@ -276,52 +330,75 @@ export const useAppStore = create<AppState>((set) => ({
 
   setView: (view) => set({ currentView: view }),
 
-  // Sentiment Actions
+  updateUIContext: (updates) => set((state) => {
+    const newCtx = { ...state.uiContext, ...updates };
+    return {
+      uiContext: newCtx,
+      layoutConfig: calculateLayout(newCtx)
+    };
+  }),
+
   addSentimentFrame: (frame) => set((state) => ({
-    sentimentStream: [...state.sentimentStream.slice(-5), frame] // Keep last 5 frames
+    sentimentStream: [...state.sentimentStream.slice(-5), frame]
   })),
   clearSentimentStream: () => set({ sentimentStream: [] }),
 
-  // Spatial Chat Actions
-  setSpatialImage: (imageUrl) => set((state) => ({
-    spatialChat: { ...state.spatialChat, imageUrl, isActive: true }
+  setBlindStrategistImage: (imageUrl) => set((state) => ({
+    blindStrategist: { ...state.blindStrategist, imageUrl, isActive: true }
   })),
-  addSpatialMessage: (msg) => set((state) => ({
-    spatialChat: { ...state.spatialChat, messages: [...state.spatialChat.messages, msg] }
+  addBlindStrategistMessage: (msg) => set((state) => ({
+    blindStrategist: { ...state.blindStrategist, messages: [...state.blindStrategist.messages, msg] }
   })),
-  setSpatialProcessing: (isProcessing) => set((state) => ({
-    spatialChat: { ...state.spatialChat, isProcessing }
+  setBlindStrategistProcessing: (isProcessing) => set((state) => ({
+    blindStrategist: { ...state.blindStrategist, isProcessing }
+  })),
+  setAudioBrief: (id, text) => set((state) => ({
+    audioBriefs: { ...state.audioBriefs, [id]: text }
   })),
 
-  // Inventory
   setInventoryAlerts: (alerts) => set({ inventoryAlerts: alerts }),
 
-  // Focus
-  startFocusSession: (taskName, microSteps) => set({
-    focusSession: {
-      isActive: true,
-      taskName,
-      microSteps,
-      currentStepIndex: 0,
-      streak: 0,
-      startTime: Date.now()
-    }
-  }),
+  startFocusSession: (taskName, microSteps) => {
+    const now = Date.now();
+    // Also set UI context to Focus Mode
+    get().updateUIContext({ cognitiveMode: 'FOCUS_SINGLE_TASK' });
+    
+    set({
+      focusSession: {
+        isActive: true,
+        taskName,
+        microSteps,
+        currentStepIndex: 0,
+        streak: 0,
+        startTime: now,
+        lastStepChangeTime: now
+      },
+      lastActiveContext: `Working on: ${taskName}`
+    });
+  },
+  
+  setMicroTaskPlan: (plan) => set({ microTaskPlan: plan }),
+
   completeMicroStep: () => set((state) => {
      const nextIndex = state.focusSession.currentStepIndex + 1;
      const isFinished = nextIndex >= state.focusSession.microSteps.length;
+     const now = Date.now();
      
      const updatedSteps = [...state.focusSession.microSteps];
      updatedSteps[state.focusSession.currentStepIndex] = { ...updatedSteps[state.focusSession.currentStepIndex], isComplete: true };
 
      if (isFinished) {
+       // Revert UI context on finish
+       get().updateUIContext({ cognitiveMode: 'STRATEGY_OVERVIEW' });
        return {
          focusSession: {
            ...state.focusSession,
            microSteps: updatedSteps,
            isActive: false, 
-           streak: state.focusSession.streak + 1
-         }
+           streak: state.focusSession.streak + 1,
+           lastStepChangeTime: now
+         },
+         lastActiveContext: null
        };
      }
 
@@ -330,29 +407,33 @@ export const useAppStore = create<AppState>((set) => ({
          ...state.focusSession,
          microSteps: updatedSteps,
          currentStepIndex: nextIndex,
-         streak: state.focusSession.streak + 1
+         streak: state.focusSession.streak + 1,
+         lastStepChangeTime: now
        }
      };
   }),
-  endFocusSession: () => set({ 
-    focusSession: { 
-      isActive: false, 
-      taskName: '', 
-      microSteps: [], 
-      currentStepIndex: 0, 
-      streak: 0,
-      startTime: 0
-    } 
-  }),
+  endFocusSession: () => {
+    get().updateUIContext({ cognitiveMode: 'STRATEGY_OVERVIEW' });
+    set({ 
+      focusSession: { 
+        isActive: false, 
+        taskName: '', 
+        microSteps: [], 
+        currentStepIndex: 0, 
+        streak: 0,
+        startTime: 0,
+        lastStepChangeTime: 0
+      },
+      lastActiveContext: null
+    });
+  },
+  setLastActiveContext: (ctx) => set({ lastActiveContext: ctx }),
 
-  // Oracle
   addOracleAlert: (alert) => set((state) => ({ oracleAlerts: [alert, ...state.oracleAlerts] })),
   removeOracleAlert: (id) => set((state) => ({ oracleAlerts: state.oracleAlerts.filter(a => a.id !== id) })),
 
-  // Memory
   addMemory: (memory) => set((state) => ({ memories: [memory, ...state.memories] })),
 
-  // Emails
   setEmails: (emails) => set({ emails }),
   setProcessingEmails: (isProcessing) => set({ isProcessingEmails: isProcessing }),
   setSelectedEmailId: (id) => set({ selectedEmailId: id }),
@@ -446,7 +527,9 @@ export const useAppStore = create<AppState>((set) => ({
     boardRoom: {
       ...state.boardRoom,
       messages: [],
-      consensus: null
+      consensus: null,
+      transcript: [], // clear structured transcript
+      recommendation: undefined
     }
   })),
 
@@ -457,6 +540,10 @@ export const useAppStore = create<AppState>((set) => ({
   setBoardRoomConsensus: (consensus) => set((state) => ({
     boardRoom: { ...state.boardRoom, consensus }
   })),
+  
+  updateBoardRoomState: (updates) => set((state) => ({
+    boardRoom: { ...state.boardRoom, ...updates }
+  })),
 
   reset: () => set({
     hasStartedOnboarding: false,
@@ -465,14 +552,9 @@ export const useAppStore = create<AppState>((set) => ({
     widgets: [],
     currentView: View.DASHBOARD,
     accessibilityMode: AccessibilityMode.STANDARD,
+    themeMode: ThemeMode.NEBULA,
     research: { dossier: null, sentiment: null, questions: [], profile: null },
-    boardRoom: {
-      isActive: false,
-      topic: '',
-      consensus: null,
-      messages: [],
-      isThinking: false
-    },
+    boardRoom: { isActive: false, topic: '', consensus: null, messages: [], isThinking: false },
     journal: [],
     competitors: [],
     isAnalyzingCompetitors: false,
@@ -489,13 +571,19 @@ export const useAppStore = create<AppState>((set) => ({
     isSimulating: false,
     isVisionModalOpen: false,
     inventoryAlerts: [],
-    focusSession: { isActive: false, taskName: '', microSteps: [], currentStepIndex: 0, streak: 0, startTime: 0 },
+    focusSession: { isActive: false, taskName: '', microSteps: [], currentStepIndex: 0, streak: 0, startTime: 0, lastStepChangeTime: 0 },
+    microTaskPlan: null,
     emails: [],
     isProcessingEmails: false,
     selectedEmailId: null,
     sentimentStream: [],
-    spatialChat: { isActive: false, imageUrl: null, messages: [], isProcessing: false },
+    blindStrategist: { isActive: false, imageUrl: null, messages: [], isProcessing: false },
+    audioBriefs: {},
     oracleAlerts: [],
-    memories: []
+    memories: [],
+    lastActiveContext: null,
+    uiContext: { userId: 'guest', disabilityProfile: 'NEUROTYPICAL', device: 'DESKTOP', cognitiveMode: 'STRATEGY_OVERVIEW' },
+    layoutConfig: null,
+    agentTasks: []
   })
 }));

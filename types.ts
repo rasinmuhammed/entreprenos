@@ -19,12 +19,105 @@ export enum WidgetType {
   DIGITAL_PRESENCE = "DIGITAL_PRESENCE"
 }
 
-// --- ACCESSIBILITY MODES ---
+// --- 1. MORPHING UI TYPES ---
+export type CognitiveMode = 'FOCUS_SINGLE_TASK' | 'STRATEGY_OVERVIEW' | 'CRISIS_ALERT' | 'MOBILE_QUICK_ACTIONS';
+export type DisabilityProfile = 'BLIND' | 'DEAF' | 'ADHD' | 'MOTOR' | 'NEUROTYPICAL' | 'MULTIPLE';
+export type DeviceType = 'DESKTOP' | 'MOBILE';
+
+export interface UIContext {
+  userId: string;
+  disabilityProfile: DisabilityProfile;
+  device: DeviceType;
+  cognitiveMode: CognitiveMode;
+  currentModule?: View;
+}
+
+export type LayoutComponentType = 'PANEL' | 'CARD' | 'HUD_OVERLAY' | 'AUDIO_STREAM' | 'TASK_LIST' | 'CHAT_STREAM' | 'NAVIGATION';
+
+export interface LayoutComponent {
+  id: string;
+  type: LayoutComponentType;
+  gridArea?: string; // CSS Grid Area
+  props: Record<string, any>;
+  children?: LayoutComponent[];
+}
+
+export interface LayoutConfig {
+  layoutId: string;
+  containerClass: string; // Tailwind classes for the main grid
+  components: LayoutComponent[];
+}
+
+// --- 2. BOARDROOM AGENT TYPES ---
+export type BoardRole = 'CEO' | 'CFO' | 'REALIST';
+
+export interface BoardMessage {
+  id: string;
+  role: BoardRole | 'SYSTEM' | 'USER';
+  content: string;
+  timestamp: number;
+}
+
+export interface StrategyQuestion {
+  id: string;
+  userId: string;
+  question: string;
+  priorities: ('CASH_FLOW' | 'GROWTH' | 'RISK_REDUCTION')[];
+  timeHorizon?: string;
+  contextDocs?: string[];
+}
+
+export interface StrategyAnswer {
+  questionId: string;
+  boardTranscript: BoardMessage[];
+  finalRecommendation: string;
+  risks: string[];
+  alternatives: string[];
+}
+
+// --- 3. AGENT ORCHESTRATION TYPES ---
+export type AgentTaskStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+export type AgentTaskType = 'GEOSPATIAL_SCAN' | 'MARKET_INTEL' | 'DIGITAL_FOOTPRINT' | 'BOARD_DEBATE' | 'TASK_EXPLOSION';
+
+export interface AgentTask {
+  id: string;
+  type: AgentTaskType;
+  status: AgentTaskStatus;
+  payload: any;
+  result?: any;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// --- 4. MICRO-TASK TYPES (ADHD) ---
+export interface MicroTask {
+  id: string;
+  title: string;
+  description?: string;
+  estMinutes: number;
+  dependencies: string[]; // IDs of tasks that must be done first
+  isComplete: boolean;
+  rewardPoints: number;
+}
+
+export interface MicroTaskPlan {
+  taskId: string;
+  title: string; // The high-level goal
+  microTasks: MicroTask[];
+  createdAt: number;
+}
+
+// --- EXISTING TYPES (Legacy Support) ---
 export enum AccessibilityMode {
   STANDARD = "STANDARD",
-  SONIC_VIEW = "SONIC_VIEW",       // Blind: Spatial Audio + Linear
-  FOCUS_SHIELD = "FOCUS_SHIELD",   // ADHD: Tunnel Vision + Micro-Steps
-  SENTIMENT_HUD = "SENTIMENT_HUD"  // Deaf: Subtext Visualization
+  SONIC_VIEW = "SONIC_VIEW",       
+  FOCUS_SHIELD = "FOCUS_SHIELD",   
+  SENTIMENT_HUD = "SENTIMENT_HUD"  
+}
+
+export enum ThemeMode {
+  NEBULA = "NEBULA", 
+  EARTH = "EARTH"    
 }
 
 export interface LiveConnectionState {
@@ -34,7 +127,6 @@ export interface LiveConnectionState {
   volumeLevel: number; 
 }
 
-// --- SENTIMENT HUD TYPES ---
 export type SentimentTone = 'positive' | 'negative' | 'neutral' | 'skeptical' | 'excited' | 'conflict';
 
 export interface SentimentFrame {
@@ -43,10 +135,9 @@ export interface SentimentFrame {
   tone: SentimentTone;
   text: string;
   timestamp: number;
-  intensity: number; // 0-1
+  intensity: number;
 }
 
-// --- SPATIAL CHAT TYPES (Sonic View) ---
 export interface SpatialMessage {
   id: string;
   sender: 'user' | 'ai';
@@ -54,19 +145,11 @@ export interface SpatialMessage {
   timestamp: number;
 }
 
-export interface SpatialChatState {
+export interface BlindStrategistState {
   isActive: boolean;
   imageUrl: string | null;
   messages: SpatialMessage[];
   isProcessing: boolean;
-}
-
-// --- MICRO SPRINTER TYPES (Focus Shield) ---
-export interface MicroTask {
-  id: string;
-  text: string;
-  isComplete: boolean;
-  durationMinutes?: number;
 }
 
 export interface FocusSession {
@@ -76,9 +159,9 @@ export interface FocusSession {
   currentStepIndex: number;
   streak: number;
   startTime: number;
+  lastStepChangeTime: number; 
 }
 
-// --- INVENTORY SONAR TYPES ---
 export interface InventoryAlert {
   item: string;
   currentCount: number;
@@ -86,7 +169,6 @@ export interface InventoryAlert {
   status: 'OK' | 'LOW' | 'CRITICAL';
 }
 
-// --- ORACLE & MEMORY TYPES ---
 export interface OracleAlert {
   id: string;
   severity: 'high' | 'medium' | 'low';
@@ -102,7 +184,6 @@ export interface MemoryFragment {
   summary: string;
 }
 
-// --- EMAIL AGENT TYPES ---
 export interface Email {
   id: string;
   sender: string;
@@ -117,7 +198,6 @@ export interface Email {
   tags: string[];
 }
 
-// --- EXISTING TYPES ---
 export enum AgentPersona {
   CEO = "CEO",
   CFO = "CFO",
@@ -179,6 +259,7 @@ export interface BusinessContext {
   location?: string;
   generatedAt: number;
   accessibilityMode: AccessibilityMode;
+  theme: ThemeMode;
 }
 
 export interface ChatMessage {
@@ -196,6 +277,12 @@ export interface BoardRoomState {
   messages: ChatMessage[];
   isThinking: boolean;
   currentThought?: string;
+  // New structured fields
+  activeQuestionId?: string;
+  transcript?: BoardMessage[];
+  recommendation?: string;
+  risks?: string[];
+  alternatives?: string[];
 }
 
 export interface CompetitorEntity {
@@ -219,7 +306,7 @@ export interface EntityDossier {
   website?: string;
   description: string;
   location?: string;
-  energyLevel?: string; // New field for emotional context
+  energyLevel?: string;
 }
 
 export interface DigitalAudit {
