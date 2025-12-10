@@ -25,6 +25,11 @@ export const SensoryInput: React.FC = () => {
      setPrivacyMode(newMode);
      liveBridge.updatePrivacyMode(newMode);
      setShowNoiseAlert(false); // Dismiss alert if manually toggled
+     
+     // UX Polish: Immediate Local Feedback
+     const utterance = new SpeechSynthesisUtterance(`${newMode === 'PUBLIC' ? 'Public' : 'Private'} Mode Active`);
+     utterance.rate = 1.2;
+     window.speechSynthesis.speak(utterance);
   };
 
   // High Noise Detection Logic

@@ -52,7 +52,19 @@ export const AdaptiveRenderer: React.FC = () => {
         return null;
 
       case 'PANEL':
-        if (comp.id === 'micro-step-view') return <MicroStepView />;
+        if (comp.id === 'micro-step-view') {
+           // Tunnel Vision Effect for Focus Shield
+           return (
+             <motion.div 
+               initial={{ scale: 0.8, opacity: 0 }} 
+               animate={{ scale: 1, opacity: 1 }} 
+               transition={{ duration: 0.5, ease: "circOut" }}
+               className="h-full"
+             >
+                <MicroStepView />
+             </motion.div>
+           );
+        }
         
         // Main Content Panel Logic
         if (comp.id === 'main' || comp.id === 'main-content') {

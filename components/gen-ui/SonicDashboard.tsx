@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { synthesizeWidgetAudio } from '../../services/audio/semanticSynthesizer';
 import { Volume2, Play, Rewind, FastForward } from 'lucide-react';
@@ -8,6 +8,13 @@ import { WidgetData, View } from '../../types';
 export const SonicDashboard: React.FC = () => {
   const { widgets, audioBriefs, setAudioBrief, setView, addBlindStrategistMessage } = useAppStore();
   const [focusedIndex, setFocusedIndex] = React.useState(0);
+
+  // Announce Instructions on Mount
+  useEffect(() => {
+     const msg = new SpeechSynthesisUtterance("Sonic Dashboard Active. Use Up and Down arrows to navigate. Press Enter for summary. Spacebar for deep dive.");
+     msg.rate = 1.1;
+     window.speechSynthesis.speak(msg);
+  }, []);
 
   const handlePlayBrief = async (widget: WidgetData) => {
     let text = audioBriefs[widget.id];
@@ -34,12 +41,7 @@ export const SonicDashboard: React.FC = () => {
        const activeWidget = widgets[focusedIndex];
        if (activeWidget) {
           // Deep Dive: Switch to Strategist with context
-          setView(View.BOARDROOM); // Actually map to BlindStrategist if possible, or simulate it. 
-          // Since BlindStrategist is a "Chat Stream" component in AdaptiveRenderer, we might need to route explicitly.
-          // For now, let's assume we want to trigger the BlindStrategist overlay or logic.
-          // However, based on the layoutEngine, BlindStrategist is ALWAYS visible in 'BLIND' mode.
-          // So we just inject a message into it.
-          
+          // Since BlindStrategist is visible in the 'BLIND' layout, we trigger it via message injection.
           addBlindStrategistMessage({
              id: Math.random().toString(),
              sender: 'system',
@@ -47,7 +49,6 @@ export const SonicDashboard: React.FC = () => {
              timestamp: Date.now()
           });
           
-          // Synthesize specific prompt for deep dive
           const utterance = new SpeechSynthesisUtterance("Opening deep dive analysis. Ask a question.");
           window.speechSynthesis.speak(utterance);
        }

@@ -43,12 +43,16 @@ export const VisionModal: React.FC = () => {
            appendWidgets([{
               id: Math.random().toString(),
               type: WidgetType.GENERATIVE_UI,
-              title: "Blueprint V1 (From Napkin)",
+              title: "Blueprint V1 (From Sketch)",
               content: {}, 
               genUISchema: result.dataPayload.genUISchema,
               gridArea: "span 2 / span 2"
            }]);
-           setVisionModalOpen(false); // Close immediately to reveal the magic
+           
+           // UX Micro-Polish: Delay closing to show success state
+           setTimeout(() => {
+             setVisionModalOpen(false);
+           }, 1500);
            return;
         }
         
