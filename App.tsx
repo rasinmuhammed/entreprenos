@@ -44,9 +44,14 @@ const App: React.FC = () => {
     }
   }, [focusSession.isActive, lastActiveContext]);
 
-  const isEarthMode = themeMode === ThemeMode.EARTH;
-  const isFocusMode = accessibilityMode === AccessibilityMode.FOCUS_SHIELD;
-  const bgClass = isFocusMode ? 'bg-black text-zinc-300' : 
+  // --- THEMING LOGIC ---
+  // High Contrast is mandatory for SONIC_VIEW (Visually Impaired)
+  const isHighContrast = accessibilityMode === AccessibilityMode.SONIC_VIEW;
+  const isEarthMode = themeMode === ThemeMode.EARTH && !isHighContrast;
+  const isFocusMode = accessibilityMode === AccessibilityMode.FOCUS_SHIELD && !isHighContrast;
+
+  const bgClass = isHighContrast ? 'bg-black text-yellow-400 font-mono' :
+                  isFocusMode ? 'bg-black text-zinc-300' : 
                   isEarthMode ? 'bg-stone-50 text-stone-900' : 'bg-nebula-950 text-white';
 
   const toggleTheme = () => {
@@ -58,8 +63,9 @@ const App: React.FC = () => {
       {!hasStartedOnboarding ? (
         <LandingPage />
       ) : (
-        <div className={`min-h-screen font-sans selection:bg-tech-cyan/30 overflow-hidden flex flex-col relative ${bgClass}`}>
-          {accessibilityMode === AccessibilityMode.STANDARD && (
+        <div className={`min-h-screen font-sans selection:bg-tech-cyan/30 overflow-hidden flex flex-col relative transition-colors duration-500 ${bgClass}`}>
+          {/* BACKGROUND LAYERS - Disable for High Contrast to reduce noise */}
+          {!isHighContrast && (
             <>
               <div className="fixed inset-0 z-0 bg-grid-pattern opacity-[0.15] pointer-events-none" />
               <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
@@ -96,62 +102,51 @@ const App: React.FC = () => {
             <AnimatePresence><VisionModal /></AnimatePresence>
             <div className={`flex-1 flex flex-col h-full overflow-hidden relative z-10 transition-all duration-500 ${context && accessibilityMode === AccessibilityMode.STANDARD ? 'ml-20' : ''}`}>
               {accessibilityMode !== AccessibilityMode.FOCUS_SHIELD && (
-                <header className={`px-8 py-5 flex items-center justify-between shrink-0 border-b z-40 backdrop-blur-md ${isEarthMode ? 'bg-stone-100/50 border-stone-200 text-stone-900' : 'bg-nebula-950/50 border-white/5 text-white'}`}>
+                <header className={`px-8 py-5 flex items-center justify-between shrink-0 border-b z-40 backdrop-blur-md ${isHighContrast ? 'bg-black border-yellow-400' : isEarthMode ? 'bg-stone-100/50 border-stone-200 text-stone-900' : 'bg-nebula-950/50 border-white/5 text-white'}`}>
                   <div className="flex items-center gap-3">
                      <div className="relative group">
-                       <div className={`absolute inset-0 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${isEarthMode ? 'bg-amber-400/30' : 'bg-tech-cyan/20'}`} />
-                       <Hexagon className={`w-6 h-6 relative z-10 ${isEarthMode ? 'text-amber-600' : 'text-tech-cyan'}`} />
+                       <div className={`absolute inset-0 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${isHighContrast ? 'hidden' : isEarthMode ? 'bg-amber-400/30' : 'bg-tech-cyan/20'}`} />
+                       <Hexagon className={`w-6 h-6 relative z-10 ${isHighContrast ? 'text-yellow-400' : isEarthMode ? 'text-amber-600' : 'text-tech-cyan'}`} />
                      </div>
-                     {!context && <div className="flex flex-col"><span className="font-semibold tracking-tight text-lg leading-none">EntreprenOS</span><span className="text-[9px] font-mono opacity-40 tracking-widest uppercase">Access Edition</span></div>}
+                     {!context && <div className="flex flex-col"><span className="font-semibold tracking-tight text-lg leading-none">EntreprenOS</span><span className={`text-[9px] font-mono tracking-widest uppercase ${isHighContrast ? 'text-yellow-400' : 'opacity-40'}`}>Access Edition</span></div>}
                      {context && <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}><span className="font-medium text-sm tracking-wide ml-4">{context.businessName}</span></motion.div>}
                   </div>
                   <div className="flex items-center gap-4">
-                     <div className={`px-3 py-1 border rounded-full text-[10px] font-mono uppercase flex items-center gap-2 ${isEarthMode ? 'bg-stone-200 border-stone-300 text-stone-600' : 'bg-white/5 border-white/10 text-white/50'}`}>
+                     <div className={`px-3 py-1 border rounded-full text-[10px] font-mono uppercase flex items-center gap-2 ${isHighContrast ? 'border-yellow-400 text-yellow-400' : isEarthMode ? 'bg-stone-200 border-stone-300 text-stone-600' : 'bg-white/5 border-white/10 text-white/50'}`}>
                         <Accessibility className="w-3 h-3" /> Mode: {accessibilityMode}
                      </div>
                      
-                     <div className={`hidden md:flex items-center gap-2 px-3 py-1 border rounded-full text-[10px] font-mono uppercase ${isEarthMode ? 'bg-stone-200 border-stone-300 text-stone-600' : 'bg-white/5 border-white/10 text-white/50'}`}>
+                     <div className={`hidden md:flex items-center gap-2 px-3 py-1 border rounded-full text-[10px] font-mono uppercase ${isHighContrast ? 'border-yellow-400 text-yellow-400' : isEarthMode ? 'bg-stone-200 border-stone-300 text-stone-600' : 'bg-white/5 border-white/10 text-white/50'}`}>
                         <span>{auth.user?.email}</span>
                      </div>
 
-                     {context && (
+                     {context && !isHighContrast && (
                         <button 
                           onClick={toggleTheme}
-                          className={`px-3 py-1 border rounded-full text-[10px] font-mono uppercase flex items-center gap-2 transition-all hover:scale-105 ${isEarthMode ? 'bg-amber-100 border-amber-200 text-amber-800 hover:bg-amber-200' : 'bg-indigo-900/20 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/40'}`}
+                          className={`px-3 py-1 border rounded-full text-[10px] font-mono uppercase flex items-center gap-2 transition-all hover:scale-105 ${isEarthMode ? 'bg-amber-100 border-amber-200 text-amber-800 hover:bg-amber-200' : 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/30'}`}
                         >
-                            {isEarthMode ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
-                            Theme: {themeMode}
+                           {isEarthMode ? <Moon className="w-3 h-3" /> : <Sun className="w-3 h-3" />}
+                           {isEarthMode ? 'Dark' : 'Light'}
                         </button>
                      )}
-                     
-                     {/* Logout Button */}
-                     <button 
-                        onClick={logout} 
-                        className={`transition-colors ${isEarthMode ? 'text-stone-400 hover:text-rose-500' : 'text-white/40 hover:text-rose-400'}`}
-                        title="Logout"
-                     >
-                        <LogOut className="w-4 h-4" />
-                     </button>
                   </div>
                 </header>
               )}
+              
               <main className="flex-1 overflow-hidden relative">
-                <AnimatePresence mode="wait">
-                  {!context ? (
-                    <motion.div key="onboarding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20, filter: "blur(10px)" }} className="h-full flex flex-col justify-center items-center pb-20 px-4">
-                      <ContextEngine />
-                    </motion.div>
-                  ) : (
-                    <AdaptiveRenderer />
-                  )}
-                </AnimatePresence>
+                 <AdaptiveRenderer />
               </main>
+
+              {/* SENSORY INPUT FOOTER */}
+              <div className="shrink-0 z-50">
+                 <SensoryInput />
+              </div>
             </div>
           </div>
-          <SensoryInput />
         </div>
       )}
     </AuthGuard>
   );
 };
+
 export default App;

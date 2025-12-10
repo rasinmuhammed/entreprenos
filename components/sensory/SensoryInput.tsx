@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
-import { motion } from 'framer-motion';
-import { Mic, MicOff, Power, Activity, Lock, Unlock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mic, MicOff, Power, Activity, Lock, Unlock, Ear, EarOff, VolumeX } from 'lucide-react';
 import { GlassPane } from '../ui/GlassPane';
 import { useAppStore } from '../../store/appStore';
 import { liveBridge } from '../../services/geminiLiveBridge';
@@ -10,6 +10,7 @@ import { liveBridge } from '../../services/geminiLiveBridge';
 export const SensoryInput: React.FC = () => {
   const { connect, disconnect, isConnected, volume } = useGeminiLive();
   const { liveState, setPrivacyMode } = useAppStore();
+  const [showNoiseAlert, setShowNoiseAlert] = useState(false);
 
   const handleToggle = () => {
     if (isConnected) {
@@ -23,11 +24,41 @@ export const SensoryInput: React.FC = () => {
      const newMode = liveState.privacyMode === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
      setPrivacyMode(newMode);
      liveBridge.updatePrivacyMode(newMode);
+     setShowNoiseAlert(false); // Dismiss alert if manually toggled
   };
+
+  // High Noise Detection Logic
+  useEffect(() => {
+    if (isConnected && volume > 0.3 && liveState.privacyMode === 'PRIVATE') {
+       // If volume RMS > 0.3 (loud) and currently in Private Mode, prompt user
+       // Simple debounce could be added here
+       const timer = setTimeout(() => setShowNoiseAlert(true), 1500);
+       return () => clearTimeout(timer);
+    }
+  }, [volume, isConnected, liveState.privacyMode]);
 
   return (
     <GlassPane className="relative flex items-center justify-between p-4 bg-nebula-950/80 backdrop-blur-2xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-50">
       
+      {/* Noise Alert Toast */}
+      <AnimatePresence>
+         {showNoiseAlert && (
+            <motion.div
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: -80 }}
+               exit={{ opacity: 0, y: 0 }}
+               className="absolute left-1/2 -translate-x-1/2 bg-tech-amber/90 backdrop-blur-md text-black px-6 py-3 rounded-full flex items-center gap-4 shadow-glow z-50 cursor-pointer"
+               onClick={togglePrivacy}
+            >
+               <VolumeX className="w-5 h-5" />
+               <div className="flex flex-col text-left">
+                  <span className="text-xs font-bold uppercase">High Noise Detected</span>
+                  <span className="text-[10px] opacity-80">Tap to enable Privacy Mode?</span>
+               </div>
+            </motion.div>
+         )}
+      </AnimatePresence>
+
       {/* Visualizer / Status */}
       <div className="flex items-center gap-6 flex-1">
         <button 
@@ -76,7 +107,7 @@ export const SensoryInput: React.FC = () => {
             }`}
             title="Privacy Shield: Prevent AI from reading sensitive numbers aloud"
          >
-            {liveState.privacyMode === 'PUBLIC' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            {liveState.privacyMode === 'PUBLIC' ? <EarOff className="w-4 h-4" /> : <Ear className="w-4 h-4" />}
             <div className="flex flex-col text-left">
                <span className="text-[10px] font-mono uppercase tracking-widest font-bold">
                   {liveState.privacyMode === 'PUBLIC' ? 'Public Mode' : 'Private Mode'}

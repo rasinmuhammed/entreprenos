@@ -15,12 +15,20 @@ export const useGeminiLive = () => {
   const oracleIntervalRef = useRef<number | null>(null);
 
   const connect = useCallback(async (persona: 'Standard' | 'Helpful' | 'Direct' = 'Standard') => {
+    // Get current privacy mode from store to inject into initial context
+    const currentPrivacy = useAppStore.getState().liveState.privacyMode;
+
     await liveBridge.connect({
       voiceName: 'Kore',
       systemInstruction: `
         You are EntreprenOS Access Edition. 
         Current Accessibility Mode: ${useAppStore.getState().accessibilityMode}.
+        Current Privacy Mode: ${currentPrivacy}.
         
+        PRIVACY PROTOCOL:
+        - IF PUBLIC: Do NOT speak sensitive metrics (Revenue, Cash). Say "Data displayed on screen."
+        - IF PRIVATE: Speak freely.
+
         CRITICAL RULES:
         1. IF user speaks slowly or stutters -> SWITCH to FOCUS_SHIELD mode.
         2. IF user mentions "can't see" -> SWITCH to SONIC_VIEW mode.
