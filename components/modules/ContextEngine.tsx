@@ -70,8 +70,6 @@ export const ContextEngine: React.FC = () => {
     if (!isRecording) return;
     
     // Instead of jumping to analysis, we transition to the INTERVIEW to refine the pitch
-    // We can assume the pitch audio was sent to a buffer, but for this specific flow,
-    // let's transition to the Live Interview to "Discuss" the pitch.
     await stopRecording();
     setPhase(Phase.INTERVIEW);
   };
@@ -98,7 +96,12 @@ export const ContextEngine: React.FC = () => {
 
   const handleBuild = async (dossier: any) => {
     try {
-      liveBridge.disconnect(); // Stop interview
+      // 1. Announce Transition (Graceful Exit)
+      liveBridge.sendText("I have everything I need. Initiating EntreprenOS construction sequence now. Stand by.");
+      
+      // 2. Wait for audio to play out before cutting connection
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      liveBridge.disconnect();
 
       // Determine Theme
       const industryLower = (dossier.industry || "").toLowerCase();

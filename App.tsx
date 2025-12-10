@@ -26,7 +26,8 @@ const App: React.FC = () => {
     lastActiveContext, 
     setLastActiveContext, 
     themeMode, 
-    setThemeMode 
+    setThemeMode,
+    liveState
   } = useAppStore();
   
   const [resumeBrief, setResumeBrief] = useState<string | null>(null);
@@ -88,7 +89,9 @@ const App: React.FC = () => {
             )}
           </AnimatePresence>
 
-          <div className="flex-1 flex overflow-hidden relative z-10">
+          <div 
+             className={`flex-1 flex overflow-hidden relative z-10 transition-opacity duration-300 ${liveState.isStreaming ? 'opacity-80 scale-[0.99]' : 'opacity-100'}`}
+          >
             {context && accessibilityMode === AccessibilityMode.STANDARD && <Navigation />}
             <AnimatePresence><VisionModal /></AnimatePresence>
             <div className={`flex-1 flex flex-col h-full overflow-hidden relative z-10 transition-all duration-500 ${context && accessibilityMode === AccessibilityMode.STANDARD ? 'ml-20' : ''}`}>

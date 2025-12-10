@@ -2,11 +2,14 @@
 import React from 'react';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
 import { motion } from 'framer-motion';
-import { Mic, MicOff, Power, Activity } from 'lucide-react';
+import { Mic, MicOff, Power, Activity, Lock, Unlock } from 'lucide-react';
 import { GlassPane } from '../ui/GlassPane';
+import { useAppStore } from '../../store/appStore';
+import { liveBridge } from '../../services/geminiLiveBridge';
 
 export const SensoryInput: React.FC = () => {
   const { connect, disconnect, isConnected, volume } = useGeminiLive();
+  const { liveState, setPrivacyMode } = useAppStore();
 
   const handleToggle = () => {
     if (isConnected) {
@@ -16,8 +19,14 @@ export const SensoryInput: React.FC = () => {
     }
   };
 
+  const togglePrivacy = () => {
+     const newMode = liveState.privacyMode === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
+     setPrivacyMode(newMode);
+     liveBridge.updatePrivacyMode(newMode);
+  };
+
   return (
-    <GlassPane className="relative flex items-center justify-between p-4 bg-nebula-900/80 backdrop-blur-2xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-50">
+    <GlassPane className="relative flex items-center justify-between p-4 bg-nebula-950/80 backdrop-blur-2xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-50">
       
       {/* Visualizer / Status */}
       <div className="flex items-center gap-6 flex-1">
@@ -56,8 +65,31 @@ export const SensoryInput: React.FC = () => {
         </div>
       </div>
 
-      <div className="px-4 py-2 bg-white/5 rounded-lg border border-white/5">
-         <span className="text-[9px] font-mono text-white/30 uppercase">Latency: &lt;200ms</span>
+      <div className="flex items-center gap-4">
+         {/* Privacy Shield Toggle */}
+         <button 
+            onClick={togglePrivacy}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+               liveState.privacyMode === 'PUBLIC' 
+               ? 'bg-tech-amber/10 border-tech-amber/30 text-tech-amber shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
+               : 'bg-white/5 border-white/5 text-white/40 hover:text-white'
+            }`}
+            title="Privacy Shield: Prevent AI from reading sensitive numbers aloud"
+         >
+            {liveState.privacyMode === 'PUBLIC' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            <div className="flex flex-col text-left">
+               <span className="text-[10px] font-mono uppercase tracking-widest font-bold">
+                  {liveState.privacyMode === 'PUBLIC' ? 'Public Mode' : 'Private Mode'}
+               </span>
+               <span className="text-[8px] opacity-50 hidden md:inline">
+                  {liveState.privacyMode === 'PUBLIC' ? 'Audio Masked' : 'Full Audio'}
+               </span>
+            </div>
+         </button>
+
+         <div className="px-4 py-2 bg-white/5 rounded-lg border border-white/5 hidden md:block">
+            <span className="text-[9px] font-mono text-white/30 uppercase">Latency: &lt;200ms</span>
+         </div>
       </div>
     </GlassPane>
   );

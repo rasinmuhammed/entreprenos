@@ -109,6 +109,8 @@ class GeminiLiveBridge {
             You are EntreprenOS, an Agentic Operating System. 
             Goal: Be a 'Sensory Bridge' for disabled founders.
             
+            PRIVACY SHIELD: ${store.liveState.privacyMode === 'PUBLIC' ? 'ACTIVE. DO NOT speak sensitive numbers (Revenue, Cash Balance) out loud. Whisper summaries only.' : 'INACTIVE. You may speak normally.'}
+            
             IMPORTANT: If the user is in 'SENTIMENT_HUD' mode, you must prepend your text responses with a sentiment tag like [SENTIMENT: POSITIVE], [SENTIMENT: SKEPTICAL], [SENTIMENT: CONFLICT].
           `,
           responseModalities: [Modality.AUDIO],
@@ -132,6 +134,15 @@ class GeminiLiveBridge {
   public async disconnect() {
     this.cleanup();
     useAppStore.getState().setLiveState({ isConnected: false, isStreaming: false });
+  }
+
+  public updatePrivacyMode(mode: 'PUBLIC' | 'PRIVATE') {
+    if (this.session) {
+       // Send a system instruction update via text input to steer the model
+       this.session.sendRealtimeInput([{ 
+          text: `SYSTEM ALERT: User has switched Privacy Mode to ${mode}. ${mode === 'PUBLIC' ? 'STOP speaking specific financial numbers immediately. Say "Displayed on screen" instead.' : 'You may now speak freely and read data out loud.'}` 
+       }]);
+    }
   }
 
   public sendVideoFrame(base64Image: string) {

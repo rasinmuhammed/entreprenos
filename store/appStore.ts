@@ -122,6 +122,7 @@ interface AppState {
   setAccessibilityMode: (mode: AccessibilityMode) => void;
   setThemeMode: (mode: ThemeMode) => void;
   setLiveState: (state: Partial<LiveConnectionState>) => void;
+  setPrivacyMode: (mode: 'PUBLIC' | 'PRIVATE') => void;
 
   setWidgets: (widgets: WidgetData[]) => void;
   appendWidgets: (newWidgets: WidgetData[]) => void;
@@ -277,7 +278,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   accessibilityMode: AccessibilityMode.STANDARD,
   themeMode: ThemeMode.NEBULA,
-  liveState: { isConnected: false, isStreaming: false, isThinking: false, volumeLevel: 0 },
+  liveState: { isConnected: false, isStreaming: false, isThinking: false, volumeLevel: 0, privacyMode: 'PRIVATE' },
   
   sentimentStream: [],
   
@@ -350,6 +351,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   })),
   setThemeMode: (mode) => set({ themeMode: mode }),
   setLiveState: (liveState) => set((state) => ({ liveState: { ...state.liveState, ...liveState } })),
+  setPrivacyMode: (mode) => set((state) => ({ liveState: { ...state.liveState, privacyMode: mode } })),
   
   setWidgets: (widgets) => set({ widgets }),
   appendWidgets: (newWidgets) => set((state) => ({ widgets: [...state.widgets, ...newWidgets] })),

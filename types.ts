@@ -190,6 +190,7 @@ export interface LiveConnectionState {
   isStreaming: boolean;
   isThinking: boolean;
   volumeLevel: number; 
+  privacyMode: 'PUBLIC' | 'PRIVATE';
 }
 
 export type SentimentTone = 'positive' | 'negative' | 'neutral' | 'skeptical' | 'excited' | 'conflict';

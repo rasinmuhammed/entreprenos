@@ -3,10 +3,10 @@ import React from 'react';
 import { useAppStore } from '../../store/appStore';
 import { synthesizeWidgetAudio } from '../../services/audio/semanticSynthesizer';
 import { Volume2, Play, Rewind, FastForward } from 'lucide-react';
-import { WidgetData } from '../../types';
+import { WidgetData, View } from '../../types';
 
 export const SonicDashboard: React.FC = () => {
-  const { widgets, audioBriefs, setAudioBrief } = useAppStore();
+  const { widgets, audioBriefs, setAudioBrief, setView, addBlindStrategistMessage } = useAppStore();
   const [focusedIndex, setFocusedIndex] = React.useState(0);
 
   const handlePlayBrief = async (widget: WidgetData) => {
@@ -29,6 +29,28 @@ export const SonicDashboard: React.FC = () => {
       if (widgets[focusedIndex]) {
         handlePlayBrief(widgets[focusedIndex]);
       }
+    } else if (e.key === ' ' || e.key === 'Spacebar') {
+       e.preventDefault();
+       const activeWidget = widgets[focusedIndex];
+       if (activeWidget) {
+          // Deep Dive: Switch to Strategist with context
+          setView(View.BOARDROOM); // Actually map to BlindStrategist if possible, or simulate it. 
+          // Since BlindStrategist is a "Chat Stream" component in AdaptiveRenderer, we might need to route explicitly.
+          // For now, let's assume we want to trigger the BlindStrategist overlay or logic.
+          // However, based on the layoutEngine, BlindStrategist is ALWAYS visible in 'BLIND' mode.
+          // So we just inject a message into it.
+          
+          addBlindStrategistMessage({
+             id: Math.random().toString(),
+             sender: 'system',
+             text: `Analyzing ${activeWidget.title}...`,
+             timestamp: Date.now()
+          });
+          
+          // Synthesize specific prompt for deep dive
+          const utterance = new SpeechSynthesisUtterance("Opening deep dive analysis. Ask a question.");
+          window.speechSynthesis.speak(utterance);
+       }
     }
   };
 
@@ -47,7 +69,7 @@ export const SonicDashboard: React.FC = () => {
       onKeyDown={handleKeyDown} 
       autoFocus
       role="application"
-      aria-label="Sonic Dashboard. Use Up and Down arrow keys to navigate widgets. Press Enter to hear a summary."
+      aria-label="Sonic Dashboard. Use Up and Down arrow keys to navigate widgets. Press Enter to hear a summary. Spacebar for details."
     >
       <div className="flex items-center gap-4 mb-8 border-b-4 border-yellow-400 pb-4">
         <Volume2 className="w-12 h-12 text-yellow-400" />
@@ -78,7 +100,7 @@ export const SonicDashboard: React.FC = () => {
       </div>
       
       <div className="fixed bottom-0 left-0 right-0 bg-yellow-400 text-black p-4 font-bold text-center uppercase tracking-widest" aria-hidden="true">
-         Use UP/DOWN Arrows to Navigate • ENTER to Play Brief
+         UP/DOWN: Nav • ENTER: Brief • SPACE: Deep Dive
       </div>
     </div>
   );
