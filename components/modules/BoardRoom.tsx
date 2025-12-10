@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/appStore';
 import { AgentOrchestrator } from '../../services/agentOrchestrator';
-import { AgentPersona, LogType, WidgetType, BoardRole } from '../../types';
+import { BoardRole } from '../../types';
 import { GlassPane } from '../ui/GlassPane';
 import { BrainCircuit, Briefcase, TrendingUp, Users, Send, Sparkles, BookPlus, AlertTriangle, GitBranch, Target, ShieldAlert, Zap } from 'lucide-react';
 import { generateMicroTaskPlan } from '../../services/geminiService';
@@ -34,20 +34,22 @@ export const BoardRoom: React.FC = () => {
     setPriorities(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
   };
 
-  const handleStartDebate = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !context) return;
 
-    startBoardRoomSession(input);
+    // Reset previous state
     updateBoardRoomState({ transcript: [], recommendation: undefined, risks: [], alternatives: [] });
-
+    startBoardRoomSession(input);
+    
+    // Trigger orchestration
     try {
       const result = await AgentOrchestrator.runBoardRoomDebate({
         id: Math.random().toString(),
         userId: 'user',
         question: input,
         priorities: priorities,
-        contextDocs: [`Industry: ${context.industry}`, `Description: ${context.description}`]
+        contextDocs: [context.industry, context.description]
       });
       
       updateBoardRoomState({
@@ -55,190 +57,192 @@ export const BoardRoom: React.FC = () => {
         risks: result.risks,
         alternatives: result.alternatives
       });
-
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       setBoardRoomThinking(false);
     }
+    
     setInput('');
   };
 
-  const handleConvertToPlan = async () => {
+  const handleCreateActionPlan = async () => {
     if (!boardRoom.recommendation || !context) return;
     try {
-      const plan = await generateMicroTaskPlan("Execute Strategy: " + boardRoom.recommendation.slice(0, 30) + "...", context.industry);
+      const plan = await generateMicroTaskPlan(boardRoom.recommendation, context.industry);
       startFocusSession(plan.title, plan.microTasks);
     } catch (e) {
-      console.error("Failed to convert to plan", e);
+      console.error(e);
     }
   };
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] gap-6 p-6 overflow-hidden">
+    <div className="h-[calc(100vh-6rem)] flex gap-6 p-6">
       
       {/* LEFT: DEBATE ARENA */}
-      <GlassPane className="flex-[2] flex flex-col border-white/10 shadow-2xl relative overflow-hidden">
-        {/* Header */}
-        <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/5">
-          <div className="flex items-center gap-3">
-            <BrainCircuit className="text-cyan-400 w-6 h-6 animate-pulse" />
-            <div>
-              <h2 className="text-2xl font-light tracking-wide text-white">BoardRoom <span className="text-white/40 font-mono text-sm">Strategy Engine</span></h2>
-              <div className="text-[10px] text-white/40 font-mono tracking-wider uppercase flex items-center gap-2">
-                 <span className={`w-1.5 h-1.5 rounded-full ${boardRoom.isThinking ? 'bg-purple-500 animate-ping' : 'bg-emerald-500'} `}></span>
-                 {boardRoom.isThinking ? "AGENTS DELIBERATING..." : "BOARD IS SEATED"}
-              </div>
+      <GlassPane className="flex-[2] flex flex-col overflow-hidden bg-nebula-900/40 relative">
+         <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/5">
+            <div className="flex items-center gap-3">
+               <Users className="w-6 h-6 text-white" />
+               <h2 className="text-xl font-light text-white">Board of Directors</h2>
             </div>
-          </div>
-        </div>
-
-        {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 relative" ref={scrollRef}>
-           {boardRoom.messages.length === 0 && !boardRoom.isThinking && (
-             <div className="text-center text-white/20 py-20">
-               <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
-               <p>Ask a strategic question to convene the board.</p>
-             </div>
-           )}
-
-            {boardRoom.messages.map((msg) => (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, x: msg.sender === AgentPersona.CEO ? 20 : -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className={`flex gap-4 ${msg.sender === AgentPersona.CEO ? 'flex-row-reverse' : ''}`}
-              >
-                <Avatar persona={msg.sender} />
-                <div className={`max-w-[80%] p-6 rounded-2xl border backdrop-blur-md shadow-lg ${getBubbleStyle(msg.sender)}`}>
-                  <div className="flex items-center gap-2 mb-2 opacity-60">
-                    <span className="text-xs font-mono font-bold uppercase tracking-wider">{msg.sender}</span>
+            <div className="flex gap-2">
+               {['CEO', 'CFO', 'REALIST'].map((role) => (
+                  <div key={role} className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                     <div className={`w-2 h-2 rounded-full ${role === 'CEO' ? 'bg-indigo-400' : role === 'CFO' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                     <span className="text-[10px] font-mono text-white/50">{role}</span>
                   </div>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                </div>
-              </motion.div>
-            ))}
-            <div className="h-4" />
-        </div>
-
-        {/* Question Composer */}
-        <div className="p-6 bg-nebula-950/50 border-t border-white/10">
-          <div className="flex gap-2 mb-4">
-             {['CASH_FLOW', 'GROWTH', 'RISK_REDUCTION'].map(p => (
-                <button 
-                  key={p} 
-                  onClick={() => togglePriority(p as any)}
-                  className={`text-[10px] px-3 py-1 rounded-full border transition-all uppercase tracking-wider ${priorities.includes(p as any) ? 'bg-white text-black border-white' : 'bg-transparent text-white/40 border-white/10 hover:border-white/30'}`}
-                >
-                  {p.replace('_', ' ')}
-                </button>
-             ))}
-          </div>
-          <form onSubmit={handleStartDebate} className="relative group">
-              <div className="relative flex items-center bg-nebula-900/90 border border-white/10 rounded-xl overflow-hidden shadow-xl">
-                 <input
-                   type="text"
-                   value={input}
-                   onChange={(e) => setInput(e.target.value)}
-                   disabled={boardRoom.isThinking}
-                   placeholder="What strategic decision are you facing?"
-                   className="flex-1 bg-transparent border-none text-white placeholder-white/30 px-6 py-4 focus:outline-none text-base"
-                 />
-                 <button 
-                   type="submit" 
-                   disabled={!input.trim() || boardRoom.isThinking}
-                   className="p-4 text-cyan-400 hover:text-white transition-colors disabled:opacity-30"
-                 >
-                   <Send className="w-5 h-5" />
-                 </button>
-              </div>
-            </form>
-        </div>
-      </GlassPane>
-
-      {/* RIGHT: DECISION SUMMARY */}
-      <GlassPane className="flex-1 flex flex-col p-6 bg-nebula-900/40 border-white/5">
-         <div className="flex items-center gap-2 mb-6">
-           <Zap className="w-5 h-5 text-yellow-400" />
-           <h3 className="text-lg font-light text-white">Decision Memorandum</h3>
+               ))}
+            </div>
          </div>
 
-         {boardRoom.recommendation ? (
-           <div className="space-y-6 flex-1 overflow-y-auto custom-scrollbar">
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                 <div className="text-emerald-400 text-xs font-mono uppercase mb-2">Final Recommendation</div>
-                 <p className="text-white leading-relaxed">{boardRoom.recommendation}</p>
-              </div>
+         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar" ref={scrollRef}>
+            {boardRoom.messages.length === 0 && (
+               <div className="flex flex-col items-center justify-center h-full text-white/20">
+                  <BrainCircuit className="w-16 h-16 mb-4" />
+                  <p>Ask a strategic question to initiate debate.</p>
+               </div>
+            )}
+            
+            {boardRoom.messages.map((msg) => (
+               <motion.div 
+                 key={msg.id}
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 className={`flex gap-4 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
+               >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border border-white/10 ${
+                     msg.sender === 'user' ? 'bg-white/10' : 
+                     msg.sender === 'CEO' ? 'bg-indigo-500/20 text-indigo-400' :
+                     msg.sender === 'CFO' ? 'bg-emerald-500/20 text-emerald-400' :
+                     msg.sender === 'REALIST' ? 'bg-rose-500/20 text-rose-400' : 'bg-white/5 text-white/40'
+                  }`}>
+                     {msg.sender === 'user' ? <Users className="w-5 h-5" /> : 
+                      msg.sender === 'CEO' ? <Sparkles className="w-5 h-5" /> :
+                      msg.sender === 'CFO' ? <TrendingUp className="w-5 h-5" /> :
+                      msg.sender === 'REALIST' ? <ShieldAlert className="w-5 h-5" /> : <Briefcase className="w-5 h-5" />
+                     }
+                  </div>
+                  <div className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${
+                     msg.sender === 'user' ? 'bg-white text-nebula-950 rounded-tr-none' : 
+                     'bg-white/5 border border-white/5 text-white/90 rounded-tl-none'
+                  }`}>
+                     <div className="text-[10px] font-mono opacity-50 mb-1 uppercase">{msg.sender}</div>
+                     {msg.text}
+                  </div>
+               </motion.div>
+            ))}
+            
+            {boardRoom.isThinking && (
+               <div className="flex gap-4">
+                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center animate-pulse">
+                     <BrainCircuit className="w-5 h-5 text-white/40" />
+                  </div>
+                  <div className="bg-white/5 rounded-2xl rounded-tl-none p-4 flex gap-1 items-center">
+                     <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" />
+                     <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce delay-100" />
+                     <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce delay-200" />
+                  </div>
+               </div>
+            )}
+         </div>
 
-              <div>
-                 <div className="text-rose-400 text-xs font-mono uppercase mb-2 flex items-center gap-2"><ShieldAlert className="w-3 h-3"/> Identified Risks</div>
-                 <ul className="space-y-2">
-                    {boardRoom.risks?.map((risk, i) => (
-                       <li key={i} className="text-sm text-white/60 flex items-start gap-2">
-                          <span className="text-rose-500 mt-1">•</span> {risk}
-                       </li>
-                    ))}
-                 </ul>
-              </div>
-
-              <div>
-                 <div className="text-cyan-400 text-xs font-mono uppercase mb-2 flex items-center gap-2"><GitBranch className="w-3 h-3"/> Alternatives</div>
-                 <ul className="space-y-2">
-                    {boardRoom.alternatives?.map((alt, i) => (
-                       <li key={i} className="text-sm text-white/60 flex items-start gap-2">
-                          <span className="text-cyan-500 mt-1">•</span> {alt}
-                       </li>
-                    ))}
-                 </ul>
-              </div>
-
-              <button 
-                onClick={handleConvertToPlan}
-                className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-cyan-400 transition-colors flex items-center justify-center gap-2 shadow-lg mt-auto"
-              >
-                 <Target className="w-4 h-4" /> Turn into Action Plan
-              </button>
-           </div>
-         ) : (
-           <div className="flex-1 flex items-center justify-center text-center opacity-30">
-              <div>
-                 <Briefcase className="w-12 h-12 mx-auto mb-4" />
-                 <p>Awaiting Board Consensus</p>
-              </div>
-           </div>
-         )}
+         {/* COMPOSER */}
+         <div className="p-6 bg-nebula-950/50 border-t border-white/10">
+            <div className="flex gap-2 mb-4">
+               <span className="text-[10px] text-white/40 font-mono uppercase py-1">Optimize For:</span>
+               {(['CASH_FLOW', 'GROWTH', 'RISK_REDUCTION'] as const).map(p => (
+                  <button 
+                    key={p}
+                    onClick={() => togglePriority(p)}
+                    className={`px-3 py-1 rounded text-[10px] font-mono border transition-all ${
+                       priorities.includes(p) 
+                       ? 'bg-tech-cyan/20 border-tech-cyan text-tech-cyan' 
+                       : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+                    }`}
+                  >
+                     {p.replace('_', ' ')}
+                  </button>
+               ))}
+            </div>
+            <form onSubmit={handleSendMessage} className="relative">
+               <input 
+                 value={input}
+                 onChange={(e) => setInput(e.target.value)}
+                 placeholder="What strategic decision are you stuck on?"
+                 className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-12 py-4 text-white focus:outline-none focus:border-tech-cyan/50 transition-colors"
+               />
+               <button 
+                 type="submit"
+                 disabled={!input.trim() || boardRoom.isThinking}
+                 className="absolute right-2 top-2 bottom-2 aspect-square bg-tech-cyan hover:bg-cyan-400 text-nebula-950 rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+               >
+                  <Send className="w-5 h-5" />
+               </button>
+            </form>
+         </div>
       </GlassPane>
 
+      {/* RIGHT: CONSENSUS PANEL */}
+      <div className="flex-1 flex flex-col gap-6">
+         <GlassPane className="flex-1 p-8 bg-gradient-to-b from-emerald-900/20 to-nebula-900/40">
+            <div className="flex items-center gap-3 mb-6">
+               <Target className="w-6 h-6 text-emerald-400" />
+               <h3 className="text-lg font-medium text-white">Board Recommendation</h3>
+            </div>
+            
+            {boardRoom.recommendation ? (
+               <div className="space-y-6">
+                  <p className="text-xl text-white font-light leading-relaxed">
+                     {boardRoom.recommendation}
+                  </p>
+                  
+                  {boardRoom.risks && boardRoom.risks.length > 0 && (
+                     <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                        <div className="text-xs text-rose-400 font-bold uppercase mb-2 flex items-center gap-2">
+                           <AlertTriangle className="w-3 h-3" /> Key Risks
+                        </div>
+                        <ul className="list-disc list-inside space-y-1">
+                           {boardRoom.risks.map((risk, i) => (
+                              <li key={i} className="text-sm text-rose-200/80">{risk}</li>
+                           ))}
+                        </ul>
+                     </div>
+                  )}
+
+                  <button 
+                    onClick={handleCreateActionPlan}
+                    className="w-full py-4 bg-white text-nebula-950 rounded-xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform shadow-glow"
+                  >
+                     <Zap className="w-5 h-5 text-tech-purple" />
+                     Turn into Action Plan
+                  </button>
+               </div>
+            ) : (
+               <div className="h-full flex items-center justify-center text-white/20 text-center text-sm">
+                  Debate in progress...<br/>Recommendation will appear here.
+               </div>
+            )}
+         </GlassPane>
+         
+         <GlassPane className="h-1/3 p-6">
+            <div className="flex items-center gap-2 mb-4">
+               <GitBranch className="w-4 h-4 text-tech-purple" />
+               <h3 className="text-sm font-medium text-white">Alternatives Considered</h3>
+            </div>
+            {boardRoom.alternatives && boardRoom.alternatives.length > 0 ? (
+               <ul className="space-y-3">
+                  {boardRoom.alternatives.map((alt, i) => (
+                     <li key={i} className="text-sm text-white/60 flex gap-2">
+                        <span className="text-white/20">•</span> {alt}
+                     </li>
+                  ))}
+               </ul>
+            ) : (
+               <p className="text-white/20 text-xs">No alternatives generated yet.</p>
+            )}
+         </GlassPane>
+      </div>
+
     </div>
   );
-};
-
-const Avatar: React.FC<{ persona: string }> = ({ persona }) => {
-  const icon = {
-    [AgentPersona.CEO]: <TrendingUp className="w-5 h-5 text-purple-200" />,
-    [AgentPersona.CFO]: <Briefcase className="w-5 h-5 text-emerald-200" />,
-    [AgentPersona.REALIST]: <Users className="w-5 h-5 text-orange-200" />,
-    'system': <BrainCircuit className="w-5 h-5 text-gray-400" />
-  }[persona];
-
-  const color = {
-    [AgentPersona.CEO]: "bg-gradient-to-br from-purple-600 to-purple-800",
-    [AgentPersona.CFO]: "bg-gradient-to-br from-emerald-600 to-emerald-800",
-    [AgentPersona.REALIST]: "bg-gradient-to-br from-orange-600 to-orange-800",
-    'system': "bg-gray-700"
-  }[persona];
-
-  return (
-    <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center shadow-lg border border-white/10 ${color}`}>
-      {icon}
-    </div>
-  );
-};
-
-const getBubbleStyle = (persona: string) => {
-  switch (persona) {
-    case AgentPersona.CEO: return "bg-purple-900/10 border-purple-500/20 text-purple-50";
-    case AgentPersona.CFO: return "bg-emerald-900/10 border-emerald-500/20 text-emerald-50";
-    case AgentPersona.REALIST: return "bg-orange-900/10 border-orange-500/20 text-orange-50";
-    default: return "bg-gray-800 border-gray-700 text-gray-300";
-  }
 };

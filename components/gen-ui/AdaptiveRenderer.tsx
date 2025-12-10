@@ -19,6 +19,8 @@ import { PitchDeckGenerator } from '../modules/PitchDeckGenerator';
 import { MarketingEngine } from '../modules/MarketingEngine';
 import { VentureSimulator } from '../modules/VentureSimulator';
 import { EmailClient } from '../modules/EmailClient';
+import { LeadInterceptor } from '../modules/LeadInterceptor';
+import { FeatureLab } from '../modules/FeatureLab';
 
 export const AdaptiveRenderer: React.FC = () => {
   const { uiContext, widgets, currentView } = useAppStore();
@@ -63,6 +65,8 @@ export const AdaptiveRenderer: React.FC = () => {
               case 'MARKETING': return <MarketingEngine />;
               case 'SIMULATOR': return <VentureSimulator />;
               case 'COMMUNICATIONS': return <EmailClient />;
+              case 'LEAD_INTERCEPTOR': return <LeadInterceptor />;
+              case 'FEATURE_LAB': return <FeatureLab />;
               case 'DASHBOARD': default: return <GoldenGrid widgets={widgets} />;
            }
         }

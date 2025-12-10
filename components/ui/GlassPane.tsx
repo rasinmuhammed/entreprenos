@@ -20,12 +20,14 @@ export const GlassPane: React.FC<GlassPaneProps> = ({ children, className, onCli
   const { themeMode } = useAppStore();
   const isEarth = themeMode === ThemeMode.EARTH;
 
+  // Earth: Warm, Paper-like, Shadow-based, Dark Text
+  // Nebula: Dark, Glass-like, Glow-based, Light Text
   const baseStyles = isEarth 
-    ? "bg-white/60 border-stone-200/50 shadow-lg backdrop-blur-xl text-stone-900"
+    ? "bg-earth-50/90 border-stone-200 shadow-sm text-stone-900"
     : "bg-glass-surface border-glass-border shadow-lg backdrop-blur-xl text-white";
 
   const hoverStyles = isEarth
-    ? "hover:shadow-xl hover:border-amber-400/30"
+    ? "hover:shadow-md hover:border-earth-accent/40"
     : "hover:shadow-glow";
 
   const noiseOpacity = isEarth ? "opacity-[0.05]" : "opacity-[0.03]";
@@ -35,7 +37,7 @@ export const GlassPane: React.FC<GlassPaneProps> = ({ children, className, onCli
       onClick={onClick}
       initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
       animate={{ opacity: 1, backdropFilter: "blur(24px)" }}
-      whileHover={hoverEffect ? { y: -2, borderColor: isEarth ? "rgba(245, 158, 11, 0.3)" : "rgba(255,255,255,0.15)" } : {}}
+      whileHover={hoverEffect ? { y: -2, borderColor: isEarth ? "rgba(217, 119, 6, 0.4)" : "rgba(255,255,255,0.15)" } : {}}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "relative overflow-hidden rounded-xl border group transition-colors duration-300",

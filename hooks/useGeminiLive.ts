@@ -1,3 +1,4 @@
+
 import { useEffect, useCallback, useRef } from 'react';
 import { liveBridge } from '../services/geminiLiveBridge';
 import { useAppStore } from '../store/appStore';
@@ -84,7 +85,9 @@ export const useGeminiLive = () => {
     if (liveState.volumeLevel < 0.01) {
        if (!silenceTimerRef.current) {
          silenceTimerRef.current = window.setTimeout(() => {
-            const currentStep = useAppStore.getState().focusSession.microSteps[useAppStore.getState().focusSession.currentStepIndex];
+            const steps = useAppStore.getState().focusSession.microSteps;
+            const idx = useAppStore.getState().focusSession.currentStepIndex;
+            const currentStep = steps[idx];
             const task = currentStep ? currentStep.title : "your task";
             liveBridge.sendText(`The user has been silent for 45 seconds. Nudge them gently to get back to: ${task}`);
          }, 45000);

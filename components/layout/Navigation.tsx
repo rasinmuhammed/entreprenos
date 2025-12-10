@@ -2,15 +2,17 @@
 import React from 'react';
 import { useAppStore } from '../../store/appStore';
 import { View } from '../../types';
-import { LayoutDashboard, Users, BookMarked, Target, Command, Map, PieChart, Presentation, Megaphone, Gamepad2, Eye, Mail } from 'lucide-react';
+import { LayoutDashboard, Users, BookMarked, Target, Command, Map, PieChart, Presentation, Megaphone, Gamepad2, Eye, Mail, MessageCircle, LogOut, FlaskConical } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const Navigation: React.FC = () => {
-  const { currentView, setView, setVisionModalOpen } = useAppStore();
+  const { currentView, setView, setVisionModalOpen, logout } = useAppStore();
 
   const navItems = [
     { id: View.DASHBOARD, label: 'Command', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { id: View.LEAD_INTERCEPTOR, label: 'Leads', icon: <MessageCircle className="w-5 h-5" /> },
     { id: View.COMMUNICATIONS, label: 'Inbox', icon: <Mail className="w-5 h-5" /> },
+    { id: View.FEATURE_LAB, label: 'R&D', icon: <FlaskConical className="w-5 h-5" /> }, // New Item
     { id: View.MARKETING, label: 'Growth', icon: <Megaphone className="w-5 h-5" /> },
     { id: View.SIMULATOR, label: 'Wargame', icon: <Gamepad2 className="w-5 h-5" /> },
     { id: View.LOCAL_INTEL, label: 'Map', icon: <Map className="w-5 h-5" /> },
@@ -81,6 +83,16 @@ export const Navigation: React.FC = () => {
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-white/5 w-full flex justify-center">
+         <button 
+           onClick={logout}
+           className="p-3 rounded-xl text-white/30 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+           title="Logout"
+         >
+           <LogOut className="w-5 h-5" />
+         </button>
       </div>
     </div>
   );

@@ -19,6 +19,23 @@ export enum WidgetType {
   DIGITAL_PRESENCE = "DIGITAL_PRESENCE"
 }
 
+// --- AUTH TYPES ---
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  role: 'FOUNDER' | 'ALLY' | 'ADMIN';
+  onboarded: boolean;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
+
 // --- 1. MORPHING UI TYPES ---
 export type CognitiveMode = 'FOCUS_SINGLE_TASK' | 'STRATEGY_OVERVIEW' | 'CRISIS_ALERT' | 'MOBILE_QUICK_ACTIONS';
 export type DisabilityProfile = 'BLIND' | 'DEAF' | 'ADHD' | 'MOTOR' | 'NEUROTYPICAL' | 'MULTIPLE';
@@ -105,6 +122,43 @@ export interface MicroTaskPlan {
   title: string; // The high-level goal
   microTasks: MicroTask[];
   createdAt: number;
+}
+
+// --- LEAD INTERCEPTOR TYPES ---
+export type LeadChannel = 'WHATSAPP' | 'INSTAGRAM' | 'GOOGLE' | 'EMAIL' | 'PHONE';
+export type LeadStatus = 'NEW' | 'AUTO_RESPONDED' | 'REQUIRES_ACTION' | 'CONVERTED' | 'LOST';
+
+export interface LeadMessage {
+  id: string;
+  sender: 'customer' | 'ai' | 'user';
+  text: string;
+  timestamp: number;
+}
+
+export interface Lead {
+  id: string;
+  name: string; // e.g., phone number or handle
+  channel: LeadChannel;
+  status: LeadStatus;
+  lastMessage: string;
+  timestamp: number; // Last activity
+  history: LeadMessage[];
+  intent?: 'INQUIRY' | 'ORDER' | 'COMPLAINT' | 'OTHER';
+  sentiment?: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
+  value?: number; // Potential value
+}
+
+// --- FEATURE LAB TYPES ---
+export interface FeatureProposal {
+  id: string;
+  title: string;
+  tagline: string;
+  description: string;
+  riceScore: number; // Reach, Impact, Confidence, Effort (0-100)
+  feasibility: 'High' | 'Medium' | 'Low';
+  competitorAdoption: string; // e.g., "Standard in industry" or "Blue Ocean"
+  implementationSteps: string[];
+  expectedROI: string;
 }
 
 // --- EXISTING TYPES (Legacy Support) ---
@@ -214,7 +268,9 @@ export enum View {
   PITCH_DECK = "PITCH_DECK",
   MARKETING = "MARKETING",
   SIMULATOR = "SIMULATOR",
-  COMMUNICATIONS = "COMMUNICATIONS"
+  COMMUNICATIONS = "COMMUNICATIONS",
+  LEAD_INTERCEPTOR = "LEAD_INTERCEPTOR",
+  FEATURE_LAB = "FEATURE_LAB"
 }
 
 export enum LogType {

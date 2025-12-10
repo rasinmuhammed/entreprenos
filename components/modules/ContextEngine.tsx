@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Video, StopCircle, Camera, Keyboard, MessageSquare, Zap, MapPin, Check } from 'lucide-react';
@@ -80,7 +81,6 @@ export const ContextEngine: React.FC = () => {
         setDossier(updatedDossier);
         handleBuild(updatedDossier);
      } else {
-        // Fallback safety
         const fallbackDossier = { name: "New Venture", industry: "Unknown", location: verifiedLocation, description: "New Business", founders: [], coreProduct: "Unknown" };
         setDossier(fallbackDossier);
         handleBuild(fallbackDossier);
@@ -247,7 +247,10 @@ const SaasWizard: React.FC<{ onComplete: (n: string, d: string) => void }> = ({ 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
        <GlassPane className="max-w-xl mx-auto p-8">
-          <div className="flex items-center gap-3 mb-6"><MessageSquare className={(React.cloneElement(<MessageSquare/>, { className: "w-6 h-6 text-tech-cyan" })).props.className} /><h2 className="text-xl text-white font-light">Venture Profile</h2></div>
+          <div className="flex items-center gap-3 mb-6">
+             <MessageSquare className="w-6 h-6 text-tech-cyan" />
+             <h2 className="text-xl text-white font-light">Venture Profile</h2>
+          </div>
           <div className="space-y-6">
              <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-tech-cyan/50 focus:outline-none" placeholder="Acme Corp" />
              <textarea value={desc} onChange={e => setDesc(e.target.value)} className="w-full h-32 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-tech-cyan/50 focus:outline-none resize-none" placeholder="Description..." />

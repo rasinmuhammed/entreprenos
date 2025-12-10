@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type, Blob as GenBlob } from '@google/genai';
 import { useAppStore } from '../store/appStore';
 import { AccessibilityMode, WidgetType, SentimentTone } from '../types';
@@ -52,12 +51,18 @@ class GeminiLiveBridge {
     store.setLiveState({ isConnected: true, isThinking: false });
 
     try {
-      // Lazy init to ensure API key is present
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = process.env.API_KEY;
+      if (!apiKey) throw new Error("API_KEY not found in environment");
+
+      const ai = new GoogleGenAI({ apiKey });
 
       // 1. Audio Output Setup
       this.outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       
+      // Promise to resolve session for the audio streamer to avoid race conditions
+      let resolveSession: (s: any) => void;
+      const sessionReady = new Promise<any>(r => resolveSession = r);
+
       // 2. Start Live Session
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -65,8 +70,8 @@ class GeminiLiveBridge {
           onopen: async () => {
             console.log("[LiveBridge] Connected");
             store.setLiveState({ isConnected: true });
-            // Start Mic Streaming
-            await this.startAudioStream(sessionPromise);
+            // Start Mic Streaming using the sessionReady promise
+            await this.startAudioStream(sessionReady);
           },
           onmessage: async (message: LiveServerMessage) => {
             this.handleMessage(message);
@@ -98,6 +103,8 @@ class GeminiLiveBridge {
       });
 
       this.session = await sessionPromise;
+      resolveSession(this.session);
+
     } catch (error) {
       console.error("[LiveBridge] Connection Failed", error);
       store.setLiveState({ isConnected: false });
@@ -106,7 +113,6 @@ class GeminiLiveBridge {
   }
 
   public async disconnect() {
-    // Close session if supported or just cleanup context
     this.cleanup();
     useAppStore.getState().setLiveState({ isConnected: false, isStreaming: false });
   }
@@ -128,7 +134,7 @@ class GeminiLiveBridge {
     }
   }
 
-  private async startAudioStream(sessionPromise: Promise<any>) {
+  private async startAudioStream(sessionReadyPromise: Promise<any>) {
     try {
       this.inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -150,7 +156,7 @@ class GeminiLiveBridge {
         // Convert Float32 to PCM Int16
         const pcmBlob = this.createBlob(inputData);
         
-        sessionPromise.then(session => {
+        sessionReadyPromise.then(session => {
             session.sendRealtimeInput({ media: pcmBlob });
         }).catch(err => console.error("Failed to send input", err));
       };
@@ -284,7 +290,8 @@ class GeminiLiveBridge {
     const l = data.length;
     const int16 = new Int16Array(l);
     for (let i = 0; i < l; i++) {
-        int16[i] = data[i] * 32768;
+        // Clamp values to prevent wrapping artifacts
+        int16[i] = Math.max(-32768, Math.min(32767, data[i] * 32768));
     }
     let binary = '';
     const bytes = new Uint8Array(int16.buffer);
