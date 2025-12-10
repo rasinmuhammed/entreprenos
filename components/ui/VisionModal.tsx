@@ -137,10 +137,9 @@ export const VisionModal: React.FC = () => {
              >
                <input ref={inputRef} type="file" className="hidden" accept="image/*" capture="environment" onChange={handleChange} />
                <Upload className="w-10 h-10 text-white/20 mb-4" />
-               <p className="text-white/60 font-medium text-lg">
-                  <span className="hidden md:inline">Drag & Drop or </span>
-                  <span className="md:hidden">Tap to Take Photo</span>
-                  <span className="hidden md:inline">Click to Upload</span>
+               <p className="text-white/60 font-medium text-lg flex flex-col items-center gap-2">
+                  <span className="hidden md:inline">Drag & Drop or Click to Upload</span>
+                  <span className="md:hidden font-bold text-tech-purple">Tap to Take Photo</span>
                </p>
                <p className="text-white/30 text-xs mt-2">Supports JPG, PNG, WEBP</p>
              </div>

@@ -11,7 +11,6 @@ export const Navigation: React.FC = () => {
   const navItems = [
     { id: View.DASHBOARD, label: 'Command', icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: View.LEAD_INTERCEPTOR, label: 'Leads', icon: <MessageCircle className="w-5 h-5" /> },
-    { id: View.TEAM, label: 'Team', icon: <Users className="w-5 h-5" /> },
     { id: View.COMMUNICATIONS, label: 'Inbox', icon: <Mail className="w-5 h-5" /> },
     { id: View.FEATURE_LAB, label: 'R&D', icon: <FlaskConical className="w-5 h-5" /> },
     { id: View.MARKETING, label: 'Growth', icon: <Megaphone className="w-5 h-5" /> },
@@ -21,6 +20,7 @@ export const Navigation: React.FC = () => {
     { id: View.FINANCE, label: 'Finance', icon: <PieChart className="w-5 h-5" /> },
     { id: View.PITCH_DECK, label: 'Pitch', icon: <Presentation className="w-5 h-5" /> },
     { id: View.BOARDROOM, label: 'Board', icon: <Briefcase className="w-5 h-5" /> },
+    { id: View.TEAM, label: 'Team', icon: <Users className="w-5 h-5" /> },
     { id: View.JOURNAL, label: 'Log', icon: <BookMarked className="w-5 h-5" /> },
   ];
 
@@ -56,12 +56,12 @@ export const Navigation: React.FC = () => {
 
       {/* --- MOBILE BOTTOM BAR (Visible only on Mobile) --- */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 h-20 z-[60] bg-nebula-950/90 backdrop-blur-xl border-t border-white/10 flex items-center justify-between px-6 pb-2 safe-area-bottom">
-         {/* We show top 4 most critical items + Central Vision FAB */}
+         {/* Left Group */}
          {navItems.slice(0, 2).map((item) => (
             <MobileNavItem key={item.id} item={item} isActive={currentView === item.id} onClick={() => setView(item.id)} />
          ))}
          
-         {/* Central FAB (Vision) */}
+         {/* Central FAB (Vision) - Elevated */}
          <button 
            onClick={() => setVisionModalOpen(true)}
            className="relative -top-6 bg-tech-purple text-white p-4 rounded-full shadow-[0_0_20px_rgba(139,92,246,0.5)] border-4 border-nebula-950 active:scale-95 transition-transform"
@@ -69,6 +69,7 @@ export const Navigation: React.FC = () => {
             <Eye className="w-6 h-6" />
          </button>
 
+         {/* Right Group */}
          {navItems.slice(2, 4).map((item) => (
             <MobileNavItem key={item.id} item={item} isActive={currentView === item.id} onClick={() => setView(item.id)} />
          ))}

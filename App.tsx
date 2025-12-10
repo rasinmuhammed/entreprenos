@@ -114,8 +114,8 @@ const App: React.FC = () => {
             {context && accessibilityMode === AccessibilityMode.STANDARD && <Navigation />}
             <AnimatePresence><VisionModal /></AnimatePresence>
             
-            {/* MOBILE LAYOUT FIX: Only apply left margin on Desktop (md:ml-20) */}
-            <div className={`flex-1 flex flex-col h-full overflow-hidden relative z-10 transition-all duration-500 ${context && accessibilityMode === AccessibilityMode.STANDARD ? 'md:ml-20' : ''}`}>
+            {/* MOBILE LAYOUT FIX: Apply md:ml-20 for desktop sidebar space, and mb-20 for mobile bottom bar space */}
+            <div className={`flex-1 flex flex-col h-full overflow-hidden relative z-10 transition-all duration-500 ${context && accessibilityMode === AccessibilityMode.STANDARD ? 'md:ml-20 mb-20 md:mb-0' : ''}`}>
               {accessibilityMode !== AccessibilityMode.FOCUS_SHIELD && (
                 <header className={`px-8 py-5 flex items-center justify-between shrink-0 border-b z-40 backdrop-blur-md ${isHighContrast ? 'bg-black border-yellow-400' : isEarthMode ? 'bg-stone-100/50 border-stone-200 text-stone-900' : 'bg-nebula-950/50 border-white/5 text-white'}`}>
                   <div className="flex items-center gap-3">
@@ -148,12 +148,11 @@ const App: React.FC = () => {
                 </header>
               )}
               
-              <main className="flex-1 overflow-hidden relative pb-20 md:pb-0"> 
-                 {/* Added pb-20 to allow space for mobile bottom bar */}
+              <main className="flex-1 overflow-hidden relative"> 
                  <AdaptiveRenderer />
               </main>
 
-              {/* SENSORY INPUT FOOTER */}
+              {/* SENSORY INPUT FOOTER - Hidden on mobile to save space for nav */}
               <div className="shrink-0 z-50 hidden md:block">
                  <SensoryInput />
               </div>
