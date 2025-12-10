@@ -172,7 +172,7 @@ export const BoardRoom: React.FC = () => {
                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-12 py-4 text-white focus:outline-none focus:border-tech-cyan/50 transition-colors"
                />
                <button 
-                 type="submit"
+                 type="submit" 
                  disabled={!input.trim() || boardRoom.isThinking}
                  className="absolute right-2 top-2 bottom-2 aspect-square bg-tech-cyan hover:bg-cyan-400 text-nebula-950 rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                >

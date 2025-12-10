@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { BusinessContext, WidgetData, BoardRoomState, ChatMessage, ResearchGathered, ConsultationQuestion, BusinessProfile, View, LogEntry, CompetitorEntity, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, SimulationState, CrisisEvent, SimulationResult, CrisisChoice, AccessibilityMode, LiveConnectionState, InventoryAlert, FocusSession, Email, MicroTask, SentimentFrame, BlindStrategistState, SpatialMessage, OracleAlert, MemoryFragment, ThemeMode, UIContext, LayoutConfig, AgentTask, MicroTaskPlan, Lead, LeadMessage, LeadStatus, User, AuthState, FeatureProposal } from '../types';
+import { BusinessContext, WidgetData, BoardRoomState, ChatMessage, ResearchGathered, ConsultationQuestion, BusinessProfile, View, LogEntry, CompetitorEntity, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, SimulationState, CrisisEvent, SimulationResult, CrisisChoice, AccessibilityMode, LiveConnectionState, InventoryAlert, FocusSession, Email, MicroTask, SentimentFrame, BlindStrategistState, SpatialMessage, OracleAlert, MemoryFragment, ThemeMode, UIContext, LayoutConfig, AgentTask, MicroTaskPlan, Lead, LeadMessage, LeadStatus, User, AuthState, FeatureProposal, AIEmployee, EntityDossier } from '../types';
 import { calculateLayout } from '../services/layoutEngine';
 import { authService } from '../services/authService';
 
@@ -25,6 +25,9 @@ interface AppState {
 
   // --- NEW: AGENT TASKS ---
   agentTasks: AgentTask[];
+
+  // --- NEW: TEAM STATE ---
+  team: AIEmployee[];
 
   // Accessibility & Live State
   accessibilityMode: AccessibilityMode;
@@ -171,6 +174,9 @@ interface AppState {
   setFeatureProposals: (proposals: FeatureProposal[]) => void;
   setResearchingFeatures: (loading: boolean) => void;
 
+  // Team Actions
+  setTeam: (team: AIEmployee[]) => void;
+
   // Boardroom Actions
   startBoardRoomSession: (topic: string) => void;
   setBoardRoomThinking: (thinking: boolean) => void;
@@ -214,6 +220,7 @@ interface AppState {
 
   // Research
   setDossier: (dossier: any) => void;
+  updateDossier: (updates: Partial<EntityDossier>) => void;
   setSentiment: (sentiment: any) => void;
 
   reset: () => void;
@@ -266,6 +273,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   layoutConfig: null,
 
   agentTasks: [],
+  team: [],
 
   accessibilityMode: AccessibilityMode.STANDARD,
   themeMode: ThemeMode.NEBULA,
@@ -430,6 +438,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setFeatureProposals: (proposals) => set({ featureProposals: proposals }),
   setResearchingFeatures: (loading) => set({ isResearchingFeatures: loading }),
 
+  setTeam: (team) => set({ team }),
+
   startBoardRoomSession: (topic) => set((state) => ({ boardRoom: { ...state.boardRoom, isActive: true, topic, messages: [] } })),
   setBoardRoomThinking: (thinking) => set((state) => ({ boardRoom: { ...state.boardRoom, isThinking: thinking } })),
   setBoardRoomConsensus: (consensus) => set((state) => ({ boardRoom: { ...state.boardRoom, consensus } })),
@@ -472,6 +482,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setVisionModalOpen: (open) => set({ isVisionModalOpen: open }),
 
   setDossier: (dossier) => set((state) => ({ research: { ...state.research, dossier } })),
+  updateDossier: (updates) => set((state) => ({ research: { ...state.research, dossier: { ...state.research.dossier!, ...updates } } })),
   setSentiment: (sentiment) => set((state) => ({ research: { ...state.research, sentiment } })),
 
   reset: () => set({ context: null, hasStartedOnboarding: false, widgets: [] })

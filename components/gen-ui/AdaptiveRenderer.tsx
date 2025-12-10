@@ -21,6 +21,7 @@ import { VentureSimulator } from '../modules/VentureSimulator';
 import { EmailClient } from '../modules/EmailClient';
 import { LeadInterceptor } from '../modules/LeadInterceptor';
 import { FeatureLab } from '../modules/FeatureLab';
+import { TeamView } from '../modules/TeamView';
 
 export const AdaptiveRenderer: React.FC = () => {
   const { uiContext, widgets, currentView } = useAppStore();
@@ -67,6 +68,7 @@ export const AdaptiveRenderer: React.FC = () => {
               case 'COMMUNICATIONS': return <EmailClient />;
               case 'LEAD_INTERCEPTOR': return <LeadInterceptor />;
               case 'FEATURE_LAB': return <FeatureLab />;
+              case 'TEAM': return <TeamView />;
               case 'DASHBOARD': default: return <GoldenGrid widgets={widgets} />;
            }
         }

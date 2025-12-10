@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAppStore } from '../../store/appStore';
 import { View } from '../../types';
-import { LayoutDashboard, Users, BookMarked, Target, Command, Map, PieChart, Presentation, Megaphone, Gamepad2, Eye, Mail, MessageCircle, LogOut, FlaskConical } from 'lucide-react';
+import { LayoutDashboard, Users, BookMarked, Target, Command, Map, PieChart, Presentation, Megaphone, Gamepad2, Eye, Mail, MessageCircle, LogOut, FlaskConical, Briefcase } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const Navigation: React.FC = () => {
@@ -10,16 +10,17 @@ export const Navigation: React.FC = () => {
 
   const navItems = [
     { id: View.DASHBOARD, label: 'Command', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { id: View.TEAM, label: 'Team', icon: <Users className="w-5 h-5" /> }, // New Team Item
     { id: View.LEAD_INTERCEPTOR, label: 'Leads', icon: <MessageCircle className="w-5 h-5" /> },
     { id: View.COMMUNICATIONS, label: 'Inbox', icon: <Mail className="w-5 h-5" /> },
-    { id: View.FEATURE_LAB, label: 'R&D', icon: <FlaskConical className="w-5 h-5" /> }, // New Item
+    { id: View.FEATURE_LAB, label: 'R&D', icon: <FlaskConical className="w-5 h-5" /> },
     { id: View.MARKETING, label: 'Growth', icon: <Megaphone className="w-5 h-5" /> },
     { id: View.SIMULATOR, label: 'Wargame', icon: <Gamepad2 className="w-5 h-5" /> },
     { id: View.LOCAL_INTEL, label: 'Map', icon: <Map className="w-5 h-5" /> },
     { id: View.COMPETITORS, label: 'Intel', icon: <Target className="w-5 h-5" /> },
     { id: View.FINANCE, label: 'Finance', icon: <PieChart className="w-5 h-5" /> },
     { id: View.PITCH_DECK, label: 'Pitch', icon: <Presentation className="w-5 h-5" /> },
-    { id: View.BOARDROOM, label: 'Board', icon: <Users className="w-5 h-5" /> },
+    { id: View.BOARDROOM, label: 'Board', icon: <Briefcase className="w-5 h-5" /> },
     { id: View.JOURNAL, label: 'Logbook', icon: <BookMarked className="w-5 h-5" /> },
   ];
 

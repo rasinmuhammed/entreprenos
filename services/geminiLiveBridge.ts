@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type, Blob as GenBlob } from '@google/genai';
 import { useAppStore } from '../store/appStore';
 import { AccessibilityMode, WidgetType, SentimentTone } from '../types';
@@ -30,6 +31,22 @@ const createWidgetTool: FunctionDeclaration = {
       content: { type: Type.OBJECT, description: 'JSON content payload for the widget' }
     },
     required: ['type', 'title', 'content']
+  }
+};
+
+const updateBusinessContextTool: FunctionDeclaration = {
+  name: 'update_business_context',
+  parameters: {
+    type: Type.OBJECT,
+    description: 'Update the business dossier with information gathered during the interview.',
+    properties: {
+      industry: { type: Type.STRING, description: 'Industry type (e.g. Retail, SaaS)' },
+      revenueModel: { type: Type.STRING, description: 'How they make money (e.g. Subscription, Transactional)' },
+      targetAudience: { type: Type.STRING, description: 'Who they sell to' },
+      differentiator: { type: Type.STRING, description: 'Unique selling point' },
+      bottleneck: { type: Type.STRING, description: 'Current biggest challenge' }
+    },
+    required: [] // Partial updates allowed
   }
 };
 
@@ -98,7 +115,7 @@ class GeminiLiveBridge {
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: config.voiceName || 'Kore' } }
           },
-          tools: [{ functionDeclarations: [updateAccessibilityModeTool, createWidgetTool] }]
+          tools: [{ functionDeclarations: [updateAccessibilityModeTool, createWidgetTool, updateBusinessContextTool] }]
         }
       });
 
@@ -232,6 +249,17 @@ class GeminiLiveBridge {
           content: fc.args.content
        }]);
        result = { status: "widget_created" };
+    }
+    else if (fc.name === 'update_business_context') {
+       // Update Dossier Incrementally
+       store.updateDossier({
+          industry: fc.args.industry,
+          revenueModel: fc.args.revenueModel,
+          targetAudience: fc.args.targetAudience,
+          differentiator: fc.args.differentiator,
+          bottleneck: fc.args.bottleneck
+       });
+       result = { status: "context_updated" };
     }
 
     // Send response back

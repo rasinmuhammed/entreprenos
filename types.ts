@@ -161,6 +161,17 @@ export interface FeatureProposal {
   expectedROI: string;
 }
 
+// --- TEAM TYPES ---
+export interface AIEmployee {
+  id: string;
+  role: string; // e.g., "Inventory Manager"
+  name: string;
+  specialty: string; // e.g. "Supply Chain Optimization"
+  personality: string; // e.g. "Detail-oriented and cautious"
+  activeTask: string | null;
+  status: 'IDLE' | 'WORKING' | 'THINKING';
+}
+
 // --- EXISTING TYPES (Legacy Support) ---
 export enum AccessibilityMode {
   STANDARD = "STANDARD",
@@ -270,7 +281,8 @@ export enum View {
   SIMULATOR = "SIMULATOR",
   COMMUNICATIONS = "COMMUNICATIONS",
   LEAD_INTERCEPTOR = "LEAD_INTERCEPTOR",
-  FEATURE_LAB = "FEATURE_LAB"
+  FEATURE_LAB = "FEATURE_LAB",
+  TEAM = "TEAM"
 }
 
 export enum LogType {
@@ -363,6 +375,11 @@ export interface EntityDossier {
   description: string;
   location?: string;
   energyLevel?: string;
+  // New Genesis Interview Fields
+  revenueModel?: string;
+  targetAudience?: string;
+  differentiator?: string;
+  bottleneck?: string;
 }
 
 export interface DigitalAudit {

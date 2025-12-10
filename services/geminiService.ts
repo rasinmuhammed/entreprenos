@@ -1,11 +1,11 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { WidgetType, AgentPersona, EntityDossier, SentimentReport, ConsultationQuestion, BusinessProfile, CompetitorEntity, BusinessContext, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, CrisisEvent, CrisisChoice, SimulationResult, VisionAnalysis, GenUIElement, AccessibilityMode, SaaSOnboardingData, Email, MicroTask, SpatialMessage, OracleAlert, WidgetData, MicroTaskPlan, Lead, LeadStatus, LeadChannel, FeatureProposal } from "../types";
+import { WidgetType, AgentPersona, EntityDossier, SentimentReport, ConsultationQuestion, BusinessProfile, CompetitorEntity, BusinessContext, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, CrisisEvent, CrisisChoice, SimulationResult, VisionAnalysis, GenUIElement, AccessibilityMode, SaaSOnboardingData, Email, MicroTask, SpatialMessage, OracleAlert, WidgetData, MicroTaskPlan, Lead, LeadStatus, LeadChannel, FeatureProposal, AIEmployee } from "../types";
 
 const getClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-// --- Robust JSON Extraction ---
-const extractJSON = (text: string) => {
+// --- Robust JSON Extraction with Self-Correction ---
+const extractJSON = async (text: string, attempt = 1): Promise<any> => {
   if (!text) return null;
   // Remove markdown blocks if present
   let cleanText = text.replace(/```json/g, '').replace(/```/g, '');
@@ -32,7 +32,7 @@ const extractJSON = (text: string) => {
   try {
     return JSON.parse(cleanText);
   } catch (e) {
-    // If that fails, try to find the matching closing brace/bracket
+    // Basic bracket matching fallback
     let balance = 0;
     let inString = false;
     let escape = false;
@@ -53,15 +53,37 @@ const extractJSON = (text: string) => {
             try {
               return JSON.parse(cleanText.substring(0, i + 1));
             } catch (err) {
-              console.error("JSON Parse Error on substring", err);
-              return null;
+              // Failed local parse
             }
           }
         }
       }
     }
+
+    // SELF-CORRECTION (Retry)
+    if (attempt < 2) {
+       console.warn("JSON Parse Failed. Triggering Self-Correction...", text);
+       try {
+         const ai = getClient();
+         const fixPrompt = `
+           You generated invalid JSON. Fix it. Return ONLY the valid JSON.
+           Original Broken JSON:
+           ${text}
+         `;
+         const correction = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: fixPrompt,
+            config: { responseMimeType: 'application/json' }
+         });
+         return extractJSON(correction.text, attempt + 1);
+       } catch (retryErr) {
+         console.error("Self-Correction Failed", retryErr);
+         return null;
+       }
+    }
+    
+    return null;
   }
-  return null;
 };
 
 const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -134,7 +156,7 @@ export const analyzeLocationLeverage = async (context: BusinessContext): Promise
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    const data = extractJSON(response.text);
+    const data = await extractJSON(response.text);
     if (!data) throw new Error("No data returned");
     return data;
   } catch (e) {
@@ -163,7 +185,7 @@ export const processSaaSOnboarding = async (data: SaaSOnboardingData): Promise<E
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { name: data.businessName, description: data.description, industry: data.industry, founders: [], coreProduct: "SaaS Platform" };
+    return (await extractJSON(response.text)) || { name: data.businessName, description: data.description, industry: data.industry, founders: [], coreProduct: "SaaS Platform" };
   } catch {
     return { name: data.businessName, description: data.description, industry: data.industry, founders: [], coreProduct: "SaaS Platform" };
   }
@@ -202,7 +224,7 @@ export const analyzeMultimodalPitch = async (audioBlob: Blob, videoBlob: Blob): 
       config: { responseMimeType: 'application/json' }
     });
 
-    const data = extractJSON(response.text);
+    const data = await extractJSON(response.text);
     if (!data) throw new Error("Analysis failed");
 
     return {
@@ -236,7 +258,7 @@ export const performDeepResearch = async (dossier: EntityDossier): Promise<Senti
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { overallSentiment: "Neutral", keyPraises: [], keyComplaints: [], recentEvents: [] };
+    return (await extractJSON(response.text)) || { overallSentiment: "Neutral", keyPraises: [], keyComplaints: [], recentEvents: [] };
   } catch {
     return { overallSentiment: "Neutral", keyPraises: [], keyComplaints: [], recentEvents: [] };
   }
@@ -245,8 +267,17 @@ export const performDeepResearch = async (dossier: EntityDossier): Promise<Senti
 export const constructDashboard = async (dossier: EntityDossier, sentiment: SentimentReport): Promise<{ widgets: WidgetData[] }> => {
   const ai = getClient();
   const prompt = `
-    Create 5 dashboard widgets for: ${dossier.name}, Industry: ${dossier.industry}.
-    Include types: METRIC_CARD, ALERT_PANEL, GROWTH_TACTICS, COMPETITOR_RADAR.
+    ROLE: Enterprise Architect.
+    TASK: Construct the initial dashboard for ${dossier.name} (${dossier.industry}).
+    CONTEXT:
+    - Description: ${dossier.description}
+    - Revenue Model: ${dossier.revenueModel || "Unknown"}
+    - Target Audience: ${dossier.targetAudience || "General"}
+    
+    REQUIREMENTS:
+    1. Create 5-6 widgets that are HIGHLY SPECIFIC to this business type.
+    2. If it's a "Bakery", include "Inventory" and "Foot Traffic". If "SaaS", include "MRR" and "Churn".
+    3. Include at least one GENERATIVE_UI widget that acts as a custom tool (e.g. "Dough Calculator" or "Server Monitor").
     
     ${WIDGET_SCHEMA_INSTRUCTION}
   `;
@@ -256,9 +287,43 @@ export const constructDashboard = async (dossier: EntityDossier, sentiment: Sent
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { widgets: [] };
+    return (await extractJSON(response.text)) || { widgets: [] };
   } catch {
     return { widgets: [] };
+  }
+};
+
+export const generateTeamStructure = async (dossier: EntityDossier): Promise<AIEmployee[]> => {
+  const ai = getClient();
+  const prompt = `
+    ROLE: Chief Human Resources Officer (AI Division).
+    TASK: Hire 4 AI Agents optimized for: ${dossier.name} (${dossier.industry}).
+    CONTEXT:
+    - Bottleneck: ${dossier.bottleneck || "General Operations"}
+    - Goal: ${dossier.description}
+    
+    OUTPUT JSON ARRAY:
+    [
+      {
+        "id": "unique_id",
+        "role": "Job Title (e.g. Inventory Watchdog)",
+        "name": "Human Name",
+        "specialty": "Specific capability",
+        "personality": "Trait (e.g. Anxious but precise)",
+        "activeTask": "Current task",
+        "status": "WORKING"
+      }
+    ]
+  `;
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: { responseMimeType: 'application/json' }
+    });
+    return (await extractJSON(response.text)) || [];
+  } catch {
+    return [];
   }
 };
 
@@ -271,7 +336,7 @@ export const analyzeSalesData = async (text: string, context: BusinessContext): 
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { widgets: [] };
+    return (await extractJSON(response.text)) || { widgets: [] };
   } catch { return { widgets: [] }; }
 };
 
@@ -296,7 +361,7 @@ export const analyzeCompetitors = async (context: BusinessContext): Promise<{ co
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    const data = extractJSON(response.text);
+    const data = await extractJSON(response.text);
     return { competitors: Array.isArray(data) ? data : (data?.competitors || []) };
   } catch { return { competitors: [] }; }
 };
@@ -310,7 +375,7 @@ export const analyzeFinancialHealth = async (inputs: FinancialInputs, context: B
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { scenarios: [], cfoCritique: "Insufficient data.", burnRateAssessment: "Healthy" };
+    return (await extractJSON(response.text)) || { scenarios: [], cfoCritique: "Insufficient data.", burnRateAssessment: "Healthy" };
   } catch {
     return { scenarios: [], cfoCritique: "Analysis error.", burnRateAssessment: "Healthy" };
   }
@@ -325,7 +390,7 @@ export const generatePitchDeck = async (context: BusinessContext, dossier: any, 
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { slides: [], generatedAt: Date.now() };
+    return (await extractJSON(response.text)) || { slides: [], generatedAt: Date.now() };
   } catch {
     return { slides: [], generatedAt: Date.now() };
   }
@@ -340,7 +405,7 @@ export const generateMarketingCampaign = async (context: BusinessContext, goal: 
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { id: "err", name: "Error", goal, strategySummary: "Failed to generate", posts: [] };
+    return (await extractJSON(response.text)) || { id: "err", name: "Error", goal, strategySummary: "Failed to generate", posts: [] };
   } catch {
     return { id: "err", name: "Error", goal, strategySummary: "Failed to generate", posts: [] };
   }
@@ -355,7 +420,7 @@ export const generateCrisisEvent = async (context: BusinessContext, month: numbe
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { id: "err", title: "Quiet Month", description: "Nothing happened.", type: "Neutral", choices: [] };
+    return (await extractJSON(response.text)) || { id: "err", title: "Quiet Month", description: "Nothing happened.", type: "Neutral", choices: [] };
   } catch {
     return { id: "err", title: "Quiet Month", description: "Nothing happened.", type: "Neutral", choices: [] };
   }
@@ -370,7 +435,7 @@ export const resolveCrisis = async (event: CrisisEvent, choice: CrisisChoice, co
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { outcomeTitle: "Resolved", outcomeDescription: "Done.", financialImpact: 0, reputationImpact: 0, survived: true };
+    return (await extractJSON(response.text)) || { outcomeTitle: "Resolved", outcomeDescription: "Done.", financialImpact: 0, reputationImpact: 0, survived: true };
   } catch {
     return { outcomeTitle: "Resolved", outcomeDescription: "Done.", financialImpact: 0, reputationImpact: 0, survived: true };
   }
@@ -385,7 +450,7 @@ export const analyzeMultimodalInput = async (base64: string, context: BusinessCo
       contents: [{ inlineData: { mimeType: "image/jpeg", data: base64 } }, { text: prompt }],
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { detectedType: "Unknown", summary: "Analysis failed", suggestedActions: [], dataPayload: {} };
+    return (await extractJSON(response.text)) || { detectedType: "Unknown", summary: "Analysis failed", suggestedActions: [], dataPayload: {} };
   } catch {
     return { detectedType: "Unknown", summary: "Analysis failed", suggestedActions: [], dataPayload: {} };
   }
@@ -400,7 +465,7 @@ export const analyzeInbox = async (context: BusinessContext): Promise<Email[]> =
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    const data = extractJSON(response.text);
+    const data = await extractJSON(response.text);
     return Array.isArray(data) ? data : [];
   } catch { return []; }
 };
@@ -475,7 +540,7 @@ export const generateMicroTaskPlan = async (taskTitle: string, context: string):
       contents: prompt,
       config: { temperature: 0.3, responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { taskId: "err", title: taskTitle, microTasks: [], createdAt: Date.now() };
+    return (await extractJSON(response.text)) || { taskId: "err", title: taskTitle, microTasks: [], createdAt: Date.now() };
   } catch {
     return { taskId: "err", title: taskTitle, microTasks: [], createdAt: Date.now() };
   }
@@ -560,7 +625,7 @@ export const analyzeGoogleReviews = async (context: BusinessContext): Promise<{
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    return extractJSON(response.text) || { reviews: [], summary: "No reviews found.", averageRating: 0, commonThemes: [], areasForImprovement: [] };
+    return (await extractJSON(response.text)) || { reviews: [], summary: "No reviews found.", averageRating: 0, commonThemes: [], areasForImprovement: [] };
   } catch (e) {
     console.error("Review Analysis Error", e);
     return { reviews: [], summary: "Analysis failed.", averageRating: 0, commonThemes: [], areasForImprovement: [] };
@@ -621,7 +686,7 @@ export const simulateIncomingLead = async (context: BusinessContext): Promise<Le
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    const data = extractJSON(response.text);
+    const data = await extractJSON(response.text);
     
     if (!data) throw new Error("Failed to simulate lead");
 
@@ -688,7 +753,7 @@ export const processLeadMessage = async (lead: Lead, context: BusinessContext, t
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    const data = extractJSON(response.text);
+    const data = await extractJSON(response.text);
     return data || { reply: "I'll check on that.", autoResponded: false, newStatus: 'REQUIRES_ACTION' };
    } catch (e) {
      return { reply: "System error. Please reply manually.", autoResponded: false, newStatus: 'REQUIRES_ACTION' };
@@ -733,7 +798,7 @@ export const researchStrategicFeatures = async (context: BusinessContext): Promi
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-    const data = extractJSON(response.text);
+    const data = await extractJSON(response.text);
     return Array.isArray(data) ? data : [];
   } catch (e) {
     console.error("Feature Research Failed", e);
@@ -762,7 +827,7 @@ export const transformToGenerativeUI = async (widgetData: WidgetData): Promise<G
         contents: prompt,
         config: { responseMimeType: 'application/json' }
      });
-     return extractJSON(response.text) || { id: "error-ui", type: 'text', props: { content: 'Conversion failed' } };
+     return (await extractJSON(response.text)) || { id: "error-ui", type: 'text', props: { content: 'Conversion failed' } };
   } catch (e) {
      return { id: "error-ui", type: 'text', props: { content: 'Conversion error' } };
   }
@@ -788,7 +853,7 @@ export const refineGenerativeUI = async (currentSchema: GenUIElement, userInstru
         contents: prompt,
         config: { responseMimeType: 'application/json' }
      });
-     return extractJSON(response.text) || currentSchema;
+     return (await extractJSON(response.text)) || currentSchema;
   } catch (e) {
      return currentSchema;
   }
