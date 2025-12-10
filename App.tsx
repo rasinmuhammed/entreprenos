@@ -27,7 +27,8 @@ const App: React.FC = () => {
     setLastActiveContext, 
     themeMode, 
     setThemeMode,
-    liveState
+    liveState,
+    updateUIContext
   } = useAppStore();
   
   const [resumeBrief, setResumeBrief] = useState<string | null>(null);
@@ -35,6 +36,18 @@ const App: React.FC = () => {
   // Initial Session Check
   useEffect(() => {
     checkSession();
+  }, []);
+
+  // Device Detection Logic (The "Brain" Update)
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      updateUIContext({ device: isMobile ? 'MOBILE' : 'DESKTOP' });
+    };
+    
+    handleResize(); // Init
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Resume Brief Logic
@@ -100,7 +113,9 @@ const App: React.FC = () => {
           >
             {context && accessibilityMode === AccessibilityMode.STANDARD && <Navigation />}
             <AnimatePresence><VisionModal /></AnimatePresence>
-            <div className={`flex-1 flex flex-col h-full overflow-hidden relative z-10 transition-all duration-500 ${context && accessibilityMode === AccessibilityMode.STANDARD ? 'ml-20' : ''}`}>
+            
+            {/* MOBILE LAYOUT FIX: Only apply left margin on Desktop (md:ml-20) */}
+            <div className={`flex-1 flex flex-col h-full overflow-hidden relative z-10 transition-all duration-500 ${context && accessibilityMode === AccessibilityMode.STANDARD ? 'md:ml-20' : ''}`}>
               {accessibilityMode !== AccessibilityMode.FOCUS_SHIELD && (
                 <header className={`px-8 py-5 flex items-center justify-between shrink-0 border-b z-40 backdrop-blur-md ${isHighContrast ? 'bg-black border-yellow-400' : isEarthMode ? 'bg-stone-100/50 border-stone-200 text-stone-900' : 'bg-nebula-950/50 border-white/5 text-white'}`}>
                   <div className="flex items-center gap-3">
@@ -133,12 +148,13 @@ const App: React.FC = () => {
                 </header>
               )}
               
-              <main className="flex-1 overflow-hidden relative">
+              <main className="flex-1 overflow-hidden relative pb-20 md:pb-0"> 
+                 {/* Added pb-20 to allow space for mobile bottom bar */}
                  <AdaptiveRenderer />
               </main>
 
               {/* SENSORY INPUT FOOTER */}
-              <div className="shrink-0 z-50">
+              <div className="shrink-0 z-50 hidden md:block">
                  <SensoryInput />
               </div>
             </div>

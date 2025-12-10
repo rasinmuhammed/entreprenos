@@ -10,8 +10,8 @@ export const Navigation: React.FC = () => {
 
   const navItems = [
     { id: View.DASHBOARD, label: 'Command', icon: <LayoutDashboard className="w-5 h-5" /> },
-    { id: View.TEAM, label: 'Team', icon: <Users className="w-5 h-5" /> }, // New Team Item
     { id: View.LEAD_INTERCEPTOR, label: 'Leads', icon: <MessageCircle className="w-5 h-5" /> },
+    { id: View.TEAM, label: 'Team', icon: <Users className="w-5 h-5" /> },
     { id: View.COMMUNICATIONS, label: 'Inbox', icon: <Mail className="w-5 h-5" /> },
     { id: View.FEATURE_LAB, label: 'R&D', icon: <FlaskConical className="w-5 h-5" /> },
     { id: View.MARKETING, label: 'Growth', icon: <Megaphone className="w-5 h-5" /> },
@@ -21,80 +21,76 @@ export const Navigation: React.FC = () => {
     { id: View.FINANCE, label: 'Finance', icon: <PieChart className="w-5 h-5" /> },
     { id: View.PITCH_DECK, label: 'Pitch', icon: <Presentation className="w-5 h-5" /> },
     { id: View.BOARDROOM, label: 'Board', icon: <Briefcase className="w-5 h-5" /> },
-    { id: View.JOURNAL, label: 'Logbook', icon: <BookMarked className="w-5 h-5" /> },
+    { id: View.JOURNAL, label: 'Log', icon: <BookMarked className="w-5 h-5" /> },
   ];
 
   return (
-    <div className="fixed left-0 top-0 bottom-0 w-20 z-50 flex flex-col items-center py-6 bg-nebula-900/40 backdrop-blur-xl border-r border-white/5">
-      <div className="mb-10 p-3 bg-white/5 rounded-xl border border-white/10 shadow-glow cursor-default">
-        <Command className="w-5 h-5 text-white" />
-      </div>
-
-      {/* Vision Trigger */}
-      <button 
-        onClick={() => setVisionModalOpen(true)}
-        className="mb-6 p-3 rounded-xl bg-tech-purple/20 hover:bg-tech-purple/40 border border-tech-purple/30 text-tech-purple hover:text-white transition-all group relative"
-        title="Omniscient Vision"
-      >
-        <Eye className="w-5 h-5" />
-        <div className="absolute left-14 top-2 bg-nebula-950 px-2 py-1 rounded text-[9px] font-mono whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-white/10">
-          VISION INPUT
+    <>
+      {/* --- DESKTOP SIDEBAR (Hidden on Mobile) --- */}
+      <div className="hidden md:flex fixed left-0 top-0 bottom-0 w-20 z-50 flex-col items-center py-6 bg-nebula-900/40 backdrop-blur-xl border-r border-white/5">
+        <div className="mb-10 p-3 bg-white/5 rounded-xl border border-white/10 shadow-glow cursor-default">
+          <Command className="w-5 h-5 text-white" />
         </div>
-      </button>
 
-      <div className="flex flex-col gap-6 w-full px-3 overflow-y-auto custom-scrollbar flex-1 pb-4">
-        {navItems.map((item) => {
-          const isActive = currentView === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setView(item.id)}
-              className="relative group flex flex-col items-center gap-1.5 shrink-0"
-            >
-              <div className={`
-                relative p-3 rounded-xl transition-all duration-300 z-10
-                ${isActive ? 'text-white' : 'text-white/40 group-hover:text-white'}
-              `}>
-                {/* Active Indicator Backdrop */}
-                {isActive && (
-                  <motion.div
-                    layoutId="navActiveBg"
-                    className="absolute inset-0 bg-white/10 rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                {/* Icon */}
-                <div className="relative z-10">
-                   {item.icon}
-                </div>
-              </div>
-              
-              {/* Label */}
-              <span className={`text-[9px] font-mono tracking-wider uppercase transition-all duration-300 ${isActive ? 'text-tech-cyan opacity-100' : 'opacity-0 translate-y-[-5px] group-hover:opacity-100 group-hover:translate-y-0 text-white/50'}`}>
-                {item.label}
-              </span>
+        <button 
+          onClick={() => setVisionModalOpen(true)}
+          className="mb-6 p-3 rounded-xl bg-tech-purple/20 hover:bg-tech-purple/40 border border-tech-purple/30 text-tech-purple hover:text-white transition-all group relative"
+          title="Omniscient Vision"
+        >
+          <Eye className="w-5 h-5" />
+          <div className="absolute left-14 top-2 bg-nebula-950 px-2 py-1 rounded text-[9px] font-mono whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 z-50">
+            VISION INPUT
+          </div>
+        </button>
 
-              {/* Active Sideline Indicator */}
-              {isActive && (
-                 <motion.div 
-                    layoutId="navSideline"
-                    className="absolute left-[-12px] top-3 bottom-3 w-[3px] rounded-r-full bg-tech-cyan shadow-[0_0_10px_#06b6d4]"
-                 />
-              )}
-            </button>
-          );
-        })}
+        <div className="flex flex-col gap-6 w-full px-3 overflow-y-auto custom-scrollbar flex-1 pb-4">
+          {navItems.map((item) => (
+             <DesktopNavItem key={item.id} item={item} isActive={currentView === item.id} onClick={() => setView(item.id)} />
+          ))}
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-white/5 w-full flex justify-center">
+           <button onClick={logout} className="p-3 rounded-xl text-white/30 hover:text-rose-400 transition-colors"><LogOut className="w-5 h-5" /></button>
+        </div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-white/5 w-full flex justify-center">
+      {/* --- MOBILE BOTTOM BAR (Visible only on Mobile) --- */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-20 z-[60] bg-nebula-950/90 backdrop-blur-xl border-t border-white/10 flex items-center justify-between px-6 pb-2 safe-area-bottom">
+         {/* We show top 4 most critical items + Central Vision FAB */}
+         {navItems.slice(0, 2).map((item) => (
+            <MobileNavItem key={item.id} item={item} isActive={currentView === item.id} onClick={() => setView(item.id)} />
+         ))}
+         
+         {/* Central FAB (Vision) */}
          <button 
-           onClick={logout}
-           className="p-3 rounded-xl text-white/30 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-           title="Logout"
+           onClick={() => setVisionModalOpen(true)}
+           className="relative -top-6 bg-tech-purple text-white p-4 rounded-full shadow-[0_0_20px_rgba(139,92,246,0.5)] border-4 border-nebula-950 active:scale-95 transition-transform"
          >
-           <LogOut className="w-5 h-5" />
+            <Eye className="w-6 h-6" />
          </button>
+
+         {navItems.slice(2, 4).map((item) => (
+            <MobileNavItem key={item.id} item={item} isActive={currentView === item.id} onClick={() => setView(item.id)} />
+         ))}
       </div>
-    </div>
+    </>
   );
 };
+
+const DesktopNavItem: React.FC<{ item: any, isActive: boolean, onClick: () => void }> = ({ item, isActive, onClick }) => (
+  <button onClick={onClick} className="relative group flex flex-col items-center gap-1.5 shrink-0">
+    <div className={`relative p-3 rounded-xl transition-all duration-300 z-10 ${isActive ? 'text-white' : 'text-white/40 group-hover:text-white'}`}>
+      {isActive && <motion.div layoutId="navActiveBg" className="absolute inset-0 bg-white/10 rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.1)]" />}
+      <div className="relative z-10">{item.icon}</div>
+    </div>
+    <span className={`text-[9px] font-mono tracking-wider uppercase transition-all duration-300 ${isActive ? 'text-tech-cyan opacity-100' : 'opacity-0 translate-y-[-5px] group-hover:opacity-100 group-hover:translate-y-0 text-white/50'}`}>{item.label}</span>
+    {isActive && <motion.div layoutId="navSideline" className="absolute left-[-12px] top-3 bottom-3 w-[3px] rounded-r-full bg-tech-cyan shadow-[0_0_10px_#06b6d4]" />}
+  </button>
+);
+
+const MobileNavItem: React.FC<{ item: any, isActive: boolean, onClick: () => void }> = ({ item, isActive, onClick }) => (
+   <button onClick={onClick} className={`flex flex-col items-center gap-1 p-2 ${isActive ? 'text-tech-cyan' : 'text-white/40'}`}>
+      {item.icon}
+      <span className="text-[9px] font-mono uppercase tracking-tight">{item.label}</span>
+   </button>
+);

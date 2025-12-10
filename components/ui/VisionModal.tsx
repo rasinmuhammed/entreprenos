@@ -126,7 +126,7 @@ export const VisionModal: React.FC = () => {
 
            {!analysisResult && !isAnalyzing && (
              <div 
-               className={`h-64 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+               className={`h-64 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer active:scale-95 touch-manipulation ${
                  dragActive ? 'border-tech-purple bg-tech-purple/10' : 'border-white/10 hover:border-white/30 hover:bg-white/5'
                }`}
                onDragEnter={handleDrag}
@@ -135,9 +135,13 @@ export const VisionModal: React.FC = () => {
                onDrop={handleDrop}
                onClick={() => inputRef.current?.click()}
              >
-               <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={handleChange} />
+               <input ref={inputRef} type="file" className="hidden" accept="image/*" capture="environment" onChange={handleChange} />
                <Upload className="w-10 h-10 text-white/20 mb-4" />
-               <p className="text-white/60 font-medium">Drag & Drop or Click to Upload</p>
+               <p className="text-white/60 font-medium text-lg">
+                  <span className="hidden md:inline">Drag & Drop or </span>
+                  <span className="md:hidden">Tap to Take Photo</span>
+                  <span className="hidden md:inline">Click to Upload</span>
+               </p>
                <p className="text-white/30 text-xs mt-2">Supports JPG, PNG, WEBP</p>
              </div>
            )}
