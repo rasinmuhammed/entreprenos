@@ -12,7 +12,7 @@ export const SonicDashboard: React.FC = () => {
   // Announce Instructions on Mount
   useEffect(() => {
      const msg = new SpeechSynthesisUtterance("Sonic Dashboard Active. Use Up and Down arrows to navigate. Press Enter for summary. Spacebar for deep dive.");
-     msg.rate = 1.1;
+     msg.rate = 1.1; 
      window.speechSynthesis.speak(msg);
   }, []);
 

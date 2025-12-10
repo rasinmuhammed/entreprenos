@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, Eye, Loader2, ScanLine } from 'lucide-react';
+import { Upload, X, Eye, Loader2, ScanLine, CheckCircle2 } from 'lucide-react';
 import { GlassPane } from './GlassPane';
 import { analyzeMultimodalInput } from '../../services/geminiService';
 import { WidgetType } from '../../types';
@@ -36,7 +36,6 @@ export const VisionModal: React.FC = () => {
       const base64 = (e.target?.result as string).split(',')[1];
       try {
         const result = await analyzeMultimodalInput(base64, context);
-        setAnalysisResult(result);
         
         // --- 1. THE MISSING LINK: Handle Sketches (Napkin-to-App) ---
         if (result.detectedType === 'UI_BLUEPRINT' && result.dataPayload?.genUISchema) {
@@ -49,13 +48,20 @@ export const VisionModal: React.FC = () => {
               gridArea: "span 2 / span 2"
            }]);
            
-           // UX Micro-Polish: Delay closing to show success state
+           // UX Micro-Polish: Show success state, then delay close
+           setAnalysisResult({ 
+              detectedType: "SUCCESS", 
+              summary: "Blueprint confirmed. Generating interface components..." 
+           });
+           
            setTimeout(() => {
              setVisionModalOpen(false);
            }, 1500);
            return;
         }
         
+        setAnalysisResult(result);
+
         // Auto-apply logic for other types
         if (result.detectedType === 'COMPETITOR_PRICING' && result.dataPayload) {
            if (result.dataPayload.competitors) {
@@ -149,26 +155,36 @@ export const VisionModal: React.FC = () => {
            {analysisResult && (
              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
                <div className="flex items-center gap-2 mb-4">
-                 <ScanLine className="w-5 h-5 text-tech-emerald" />
-                 <span className="font-mono text-tech-emerald uppercase tracking-wider text-sm">Analysis Complete</span>
+                 {analysisResult.detectedType === "SUCCESS" ? (
+                    <CheckCircle2 className="w-6 h-6 text-emerald-400 animate-bounce" />
+                 ) : (
+                    <ScanLine className="w-5 h-5 text-tech-emerald" />
+                 )}
+                 <span className={`font-mono uppercase tracking-wider text-sm ${analysisResult.detectedType === "SUCCESS" ? "text-emerald-400 font-bold" : "text-tech-emerald"}`}>
+                    {analysisResult.detectedType === "SUCCESS" ? "Construction Initiated" : "Analysis Complete"}
+                 </span>
                </div>
                
-               <div className="mb-4">
-                 <div className="text-[10px] text-white/30 uppercase font-mono mb-1">Detected Type</div>
-                 <div className="text-white font-medium">{analysisResult.detectedType}</div>
-               </div>
+               {analysisResult.detectedType !== "SUCCESS" && (
+                 <div className="mb-4">
+                   <div className="text-[10px] text-white/30 uppercase font-mono mb-1">Detected Type</div>
+                   <div className="text-white font-medium">{analysisResult.detectedType}</div>
+                 </div>
+               )}
 
                <div className="mb-6">
                  <div className="text-[10px] text-white/30 uppercase font-mono mb-1">Summary</div>
                  <p className="text-sm text-white/70 leading-relaxed">{analysisResult.summary}</p>
                </div>
 
-               <div className="p-4 bg-tech-emerald/10 border border-tech-emerald/20 rounded-lg flex items-center justify-between">
-                 <span className="text-xs text-emerald-200">Data extracted and synced to OS.</span>
-                 <button onClick={() => setVisionModalOpen(false)} className="text-xs font-medium text-emerald-400 hover:text-white transition-colors">
-                   Close & View
-                 </button>
-               </div>
+               {analysisResult.detectedType !== "SUCCESS" && (
+                 <div className="p-4 bg-tech-emerald/10 border border-tech-emerald/20 rounded-lg flex items-center justify-between">
+                   <span className="text-xs text-emerald-200">Data extracted and synced to OS.</span>
+                   <button onClick={() => setVisionModalOpen(false)} className="text-xs font-medium text-emerald-400 hover:text-white transition-colors">
+                     Close & View
+                   </button>
+                 </div>
+               )}
              </div>
            )}
 

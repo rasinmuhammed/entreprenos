@@ -53,11 +53,11 @@ export const AdaptiveRenderer: React.FC = () => {
 
       case 'PANEL':
         if (comp.id === 'micro-step-view') {
-           // Tunnel Vision Effect for Focus Shield
+           // Tunnel Vision Effect for Focus Shield: Zoom In + Blur-to-Clear
            return (
              <motion.div 
-               initial={{ scale: 0.8, opacity: 0 }} 
-               animate={{ scale: 1, opacity: 1 }} 
+               initial={{ scale: 0.9, opacity: 0, filter: "blur(10px)" }} 
+               animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }} 
                transition={{ duration: 0.5, ease: "circOut" }}
                className="h-full"
              >
