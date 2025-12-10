@@ -43,7 +43,7 @@ export const VisionModal: React.FC = () => {
            appendWidgets([{
               id: Math.random().toString(),
               type: WidgetType.GENERATIVE_UI,
-              title: "Blueprint V1 (Auto-Generated)",
+              title: "Blueprint V1 (From Napkin)",
               content: {}, 
               genUISchema: result.dataPayload.genUISchema,
               gridArea: "span 2 / span 2"
