@@ -38,7 +38,7 @@ export const VisionModal: React.FC = () => {
         const result = await analyzeMultimodalInput(base64, context);
         setAnalysisResult(result);
         
-        // --- INSTANT WIDGET GENERATION FOR SKETCHES ---
+        // --- 1. THE MISSING LINK: Handle Sketches (Napkin-to-App) ---
         if (result.detectedType === 'UI_BLUEPRINT' && result.dataPayload?.genUISchema) {
            appendWidgets([{
               id: Math.random().toString(),
@@ -48,13 +48,12 @@ export const VisionModal: React.FC = () => {
               genUISchema: result.dataPayload.genUISchema,
               gridArea: "span 2 / span 2"
            }]);
-           setVisionModalOpen(false); // Close modal to reveal the magic immediately
+           setVisionModalOpen(false); // Close immediately to reveal the magic
            return;
         }
         
-        // Auto-apply logic
+        // Auto-apply logic for other types
         if (result.detectedType === 'COMPETITOR_PRICING' && result.dataPayload) {
-           // Merging is complex, simple append for now
            if (result.dataPayload.competitors) {
              // In a real app we would merge intelligently
              // setCompetitors([...competitors, ...result.dataPayload.competitors]);
