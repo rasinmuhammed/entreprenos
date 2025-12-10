@@ -241,7 +241,7 @@ export const ContextEngine: React.FC = () => {
 
         {(phase === Phase.BUILDING) && (
            <motion.div key="building" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full flex flex-col items-center">
-              {/* Replaced generic text with SystemBuilder */}
+              {/* Hiring Montage Animation */}
               <SystemBuilder team={team} />
            </motion.div>
         )}

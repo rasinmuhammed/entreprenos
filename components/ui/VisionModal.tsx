@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X, Eye, Loader2, ScanLine } from 'lucide-react';
 import { GlassPane } from './GlassPane';
 import { analyzeMultimodalInput } from '../../services/geminiService';
+import { WidgetType } from '../../types';
 
 export const VisionModal: React.FC = () => {
   const { isVisionModalOpen, setVisionModalOpen, context, appendWidgets, setCompetitors, competitors } = useAppStore();
@@ -36,6 +37,20 @@ export const VisionModal: React.FC = () => {
       try {
         const result = await analyzeMultimodalInput(base64, context);
         setAnalysisResult(result);
+        
+        // --- INSTANT WIDGET GENERATION FOR SKETCHES ---
+        if (result.detectedType === 'UI_BLUEPRINT' && result.dataPayload?.genUISchema) {
+           appendWidgets([{
+              id: Math.random().toString(),
+              type: WidgetType.GENERATIVE_UI,
+              title: "Blueprint V1 (Auto-Generated)",
+              content: {}, 
+              genUISchema: result.dataPayload.genUISchema,
+              gridArea: "span 2 / span 2"
+           }]);
+           setVisionModalOpen(false); // Close modal to reveal the magic immediately
+           return;
+        }
         
         // Auto-apply logic
         if (result.detectedType === 'COMPETITOR_PRICING' && result.dataPayload) {
