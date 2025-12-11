@@ -38,11 +38,9 @@ export const BoardRoom: React.FC = () => {
     e.preventDefault();
     if (!input.trim() || !context) return;
 
-    // Reset previous state
     updateBoardRoomState({ transcript: [], recommendation: undefined, risks: [], alternatives: [] });
     startBoardRoomSession(input);
     
-    // Trigger orchestration
     try {
       const result = await AgentOrchestrator.runBoardRoomDebate({
         id: Math.random().toString(),
@@ -76,30 +74,35 @@ export const BoardRoom: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-6rem)] flex gap-6 p-6">
+    <div className="h-[calc(100vh-6rem)] flex gap-6 p-6 bg-slate-50/50">
       
       {/* LEFT: DEBATE ARENA */}
-      <GlassPane className="flex-[2] flex flex-col overflow-hidden bg-nebula-900/40 relative">
-         <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/5">
+      <GlassPane className="flex-[2] flex flex-col overflow-hidden bg-white shadow-crisp border-slate-200 relative">
+         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white">
             <div className="flex items-center gap-3">
-               <Users className="w-6 h-6 text-white" />
-               <h2 className="text-xl font-light text-white">Board of Directors</h2>
+               <div className="p-2 bg-indigo-50 rounded-lg">
+                  <Users className="w-5 h-5 text-indigo-600" />
+               </div>
+               <div>
+                  <h2 className="text-lg font-bold text-ink-900 tracking-tight">Board of Directors</h2>
+                  <p className="text-xs text-ink-400">AI Advisory Council</p>
+               </div>
             </div>
             <div className="flex gap-2">
                {['CEO', 'CFO', 'REALIST'].map((role) => (
-                  <div key={role} className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full border border-white/5">
-                     <div className={`w-2 h-2 rounded-full ${role === 'CEO' ? 'bg-indigo-400' : role === 'CFO' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-                     <span className="text-[10px] font-mono text-white/50">{role}</span>
+                  <div key={role} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-full border border-slate-200">
+                     <div className={`w-2 h-2 rounded-full ${role === 'CEO' ? 'bg-indigo-500' : role === 'CFO' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                     <span className="text-[10px] font-bold text-ink-500 tracking-wide">{role}</span>
                   </div>
                ))}
             </div>
          </div>
 
-         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar" ref={scrollRef}>
+         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/50" ref={scrollRef}>
             {boardRoom.messages.length === 0 && (
-               <div className="flex flex-col items-center justify-center h-full text-white/20">
-                  <BrainCircuit className="w-16 h-16 mb-4" />
-                  <p>Ask a strategic question to initiate debate.</p>
+               <div className="flex flex-col items-center justify-center h-full text-ink-300">
+                  <BrainCircuit className="w-16 h-16 mb-4 opacity-50" />
+                  <p className="font-medium">Ask a strategic question to initiate debate.</p>
                </div>
             )}
             
@@ -110,23 +113,23 @@ export const BoardRoom: React.FC = () => {
                  animate={{ opacity: 1, y: 0 }}
                  className={`flex gap-4 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border border-white/10 ${
-                     msg.sender === 'user' ? 'bg-white/10' : 
-                     msg.sender === 'CEO' ? 'bg-indigo-500/20 text-indigo-400' :
-                     msg.sender === 'CFO' ? 'bg-emerald-500/20 text-emerald-400' :
-                     msg.sender === 'REALIST' ? 'bg-rose-500/20 text-rose-400' : 'bg-white/5 text-white/40'
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${
+                     msg.sender === 'user' ? 'bg-white border-slate-200' : 
+                     msg.sender === 'CEO' ? 'bg-indigo-50 border-indigo-100 text-indigo-600' :
+                     msg.sender === 'CFO' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
+                     msg.sender === 'REALIST' ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-slate-100 text-slate-400'
                   }`}>
-                     {msg.sender === 'user' ? <Users className="w-5 h-5" /> : 
+                     {msg.sender === 'user' ? <Users className="w-5 h-5 text-ink-600" /> : 
                       msg.sender === 'CEO' ? <Sparkles className="w-5 h-5" /> :
                       msg.sender === 'CFO' ? <TrendingUp className="w-5 h-5" /> :
                       msg.sender === 'REALIST' ? <ShieldAlert className="w-5 h-5" /> : <Briefcase className="w-5 h-5" />
                      }
                   </div>
-                  <div className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${
-                     msg.sender === 'user' ? 'bg-white text-nebula-950 rounded-tr-none' : 
-                     'bg-white/5 border border-white/5 text-white/90 rounded-tl-none'
+                  <div className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                     msg.sender === 'user' ? 'bg-tech-purple text-white rounded-tr-none' : 
+                     'bg-white border border-slate-200 text-ink-700 rounded-tl-none'
                   }`}>
-                     <div className="text-[10px] font-mono opacity-50 mb-1 uppercase">{msg.sender}</div>
+                     <div className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${msg.sender === 'user' ? 'text-white/60' : 'text-ink-400'}`}>{msg.sender}</div>
                      {msg.text}
                   </div>
                </motion.div>
@@ -134,30 +137,30 @@ export const BoardRoom: React.FC = () => {
             
             {boardRoom.isThinking && (
                <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center animate-pulse">
-                     <BrainCircuit className="w-5 h-5 text-white/40" />
+                  <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center animate-pulse shadow-sm">
+                     <BrainCircuit className="w-5 h-5 text-ink-300" />
                   </div>
-                  <div className="bg-white/5 rounded-2xl rounded-tl-none p-4 flex gap-1 items-center">
-                     <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" />
-                     <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce delay-100" />
-                     <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce delay-200" />
+                  <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-4 flex gap-1 items-center shadow-sm">
+                     <span className="w-1.5 h-1.5 bg-ink-300 rounded-full animate-bounce" />
+                     <span className="w-1.5 h-1.5 bg-ink-300 rounded-full animate-bounce delay-100" />
+                     <span className="w-1.5 h-1.5 bg-ink-300 rounded-full animate-bounce delay-200" />
                   </div>
                </div>
             )}
          </div>
 
          {/* COMPOSER */}
-         <div className="p-6 bg-nebula-950/50 border-t border-white/10">
+         <div className="p-6 bg-white border-t border-slate-200">
             <div className="flex gap-2 mb-4">
-               <span className="text-[10px] text-white/40 font-mono uppercase py-1">Optimize For:</span>
+               <span className="text-[10px] text-ink-400 font-bold uppercase py-1 tracking-wider">Optimize For:</span>
                {(['CASH_FLOW', 'GROWTH', 'RISK_REDUCTION'] as const).map(p => (
                   <button 
                     key={p}
                     onClick={() => togglePriority(p)}
-                    className={`px-3 py-1 rounded text-[10px] font-mono border transition-all ${
+                    className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border transition-all ${
                        priorities.includes(p) 
-                       ? 'bg-tech-cyan/20 border-tech-cyan text-tech-cyan' 
-                       : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+                       ? 'bg-tech-purple/10 border-tech-purple text-tech-purple' 
+                       : 'bg-slate-50 border-slate-200 text-ink-400 hover:text-ink-900 hover:border-slate-300'
                     }`}
                   >
                      {p.replace('_', ' ')}
@@ -169,12 +172,12 @@ export const BoardRoom: React.FC = () => {
                  value={input}
                  onChange={(e) => setInput(e.target.value)}
                  placeholder="What strategic decision are you stuck on?"
-                 className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-12 py-4 text-white focus:outline-none focus:border-tech-cyan/50 transition-colors"
+                 className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-14 py-4 text-ink-900 focus:outline-none focus:border-tech-purple focus:ring-1 focus:ring-tech-purple/20 transition-all placeholder-ink-300"
                />
                <button 
                  type="submit" 
                  disabled={!input.trim() || boardRoom.isThinking}
-                 className="absolute right-2 top-2 bottom-2 aspect-square bg-tech-cyan hover:bg-cyan-400 text-nebula-950 rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                 className="absolute right-2 top-2 bottom-2 aspect-square bg-tech-purple hover:bg-indigo-600 text-white rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
                >
                   <Send className="w-5 h-5" />
                </button>
@@ -184,26 +187,32 @@ export const BoardRoom: React.FC = () => {
 
       {/* RIGHT: CONSENSUS PANEL */}
       <div className="flex-1 flex flex-col gap-6">
-         <GlassPane className="flex-1 p-8 bg-gradient-to-b from-emerald-900/20 to-nebula-900/40">
+         <GlassPane className="flex-1 p-8 bg-white border-slate-200 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500" />
             <div className="flex items-center gap-3 mb-6">
-               <Target className="w-6 h-6 text-emerald-400" />
-               <h3 className="text-lg font-medium text-white">Board Recommendation</h3>
+               <div className="p-2 bg-emerald-50 rounded-lg">
+                  <Target className="w-6 h-6 text-emerald-600" />
+               </div>
+               <h3 className="text-lg font-bold text-ink-900 tracking-tight">Recommendation</h3>
             </div>
             
             {boardRoom.recommendation ? (
                <div className="space-y-6">
-                  <p className="text-xl text-white font-light leading-relaxed">
+                  <p className="text-lg text-ink-800 font-medium leading-relaxed">
                      {boardRoom.recommendation}
                   </p>
                   
                   {boardRoom.risks && boardRoom.risks.length > 0 && (
-                     <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-                        <div className="text-xs text-rose-400 font-bold uppercase mb-2 flex items-center gap-2">
-                           <AlertTriangle className="w-3 h-3" /> Key Risks
+                     <div className="p-5 bg-rose-50 border border-rose-100 rounded-xl">
+                        <div className="text-xs text-rose-600 font-bold uppercase mb-3 flex items-center gap-2 tracking-wide">
+                           <AlertTriangle className="w-3.5 h-3.5" /> Key Risks
                         </div>
-                        <ul className="list-disc list-inside space-y-1">
+                        <ul className="space-y-2">
                            {boardRoom.risks.map((risk, i) => (
-                              <li key={i} className="text-sm text-rose-200/80">{risk}</li>
+                              <li key={i} className="text-sm text-rose-700 flex items-start gap-2">
+                                 <span className="mt-1.5 w-1 h-1 bg-rose-400 rounded-full" />
+                                 {risk}
+                              </li>
                            ))}
                         </ul>
                      </div>
@@ -211,34 +220,34 @@ export const BoardRoom: React.FC = () => {
 
                   <button 
                     onClick={handleCreateActionPlan}
-                    className="w-full py-4 bg-white text-nebula-950 rounded-xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform shadow-glow"
+                    className="w-full py-4 bg-tech-purple text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-600 transition-colors shadow-lg hover:shadow-xl mt-auto"
                   >
-                     <Zap className="w-5 h-5 text-tech-purple" />
+                     <Zap className="w-5 h-5 fill-white/20" />
                      Turn into Action Plan
                   </button>
                </div>
             ) : (
-               <div className="h-full flex items-center justify-center text-white/20 text-center text-sm">
-                  Debate in progress...<br/>Recommendation will appear here.
+               <div className="h-full flex items-center justify-center text-ink-300 text-center text-sm font-medium">
+                  Debate in progress...<br/>Recommendation pending.
                </div>
             )}
          </GlassPane>
          
-         <GlassPane className="h-1/3 p-6">
+         <GlassPane className="h-1/3 p-6 bg-slate-50 border-slate-200">
             <div className="flex items-center gap-2 mb-4">
-               <GitBranch className="w-4 h-4 text-tech-purple" />
-               <h3 className="text-sm font-medium text-white">Alternatives Considered</h3>
+               <GitBranch className="w-4 h-4 text-ink-400" />
+               <h3 className="text-sm font-bold text-ink-700 uppercase tracking-wide">Alternatives</h3>
             </div>
             {boardRoom.alternatives && boardRoom.alternatives.length > 0 ? (
                <ul className="space-y-3">
                   {boardRoom.alternatives.map((alt, i) => (
-                     <li key={i} className="text-sm text-white/60 flex gap-2">
-                        <span className="text-white/20">•</span> {alt}
+                     <li key={i} className="text-sm text-ink-600 flex gap-2 leading-snug">
+                        <span className="text-ink-300 font-bold">•</span> {alt}
                      </li>
                   ))}
                </ul>
             ) : (
-               <p className="text-white/20 text-xs">No alternatives generated yet.</p>
+               <p className="text-ink-300 text-xs italic">No alternatives generated yet.</p>
             )}
          </GlassPane>
       </div>

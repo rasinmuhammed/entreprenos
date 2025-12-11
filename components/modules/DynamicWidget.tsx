@@ -36,63 +36,10 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
     startBoardRoomSession(`Deep dive analysis on: ${widget.title}`);
   };
 
-  const handleDeployTactic = (tactic: string) => {
-    startBoardRoomSession(`Create a detailed execution plan for: ${tactic}`);
-  };
-
   const handleSwotDebate = (point: string, category: string) => {
     startBoardRoomSession(`Strategic debate on ${category}: "${point}". How do we address this?`);
   };
 
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !context) {
-        setActiveServiceId(null);
-        return;
-    }
-    setIsAnalyzing(true);
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const text = ev.target?.result as string;
-      try {
-        const result = await analyzeSalesData(text, context);
-        if (result.widgets) appendWidgets(result.widgets);
-      } catch (err) { console.error("Import failed", err); } finally {
-        setIsAnalyzing(false);
-        setActiveServiceId(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleConnect = async (serviceName: string) => {
-    setActiveServiceId(serviceName);
-    if (serviceName.toLowerCase().includes("google business")) {
-       setIsAnalyzing(true);
-       try {
-         await new Promise(r => setTimeout(r, 1000));
-         const result = await fetchBusinessProfileDetails(context?.businessName || "");
-         if (result.widgets) appendWidgets(result.widgets);
-       } catch (err) { console.error("GBP Connect failed", err); } finally {
-         setIsAnalyzing(false);
-         setActiveServiceId(null);
-       }
-       return;
-    }
-    if (fileInputRef.current) fileInputRef.current.click();
-  };
-
-  const toggleTaskStatus = (colIndex: number, taskIndex: number, currentText: string) => {
-     if (widget.type !== WidgetType.KANBAN_BOARD || !safeContent) return;
-     const isDone = currentText.startsWith("✅ ");
-     const newText = isDone ? currentText.replace("✅ ", "") : "✅ " + currentText;
-     const newColumns = [...safeContent.columns];
-     newColumns[colIndex].tasks[taskIndex] = newText;
-     updateWidgetContent(widget.id, { ...safeContent, columns: newColumns });
-  };
-
-  // --- UI FIXING LOGIC ---
   const handleFixUI = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uiPrompt.trim()) return;
@@ -100,25 +47,16 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
     setIsFixingUI(true);
     try {
       let newSchema;
-
-      // Case 1: Already Generative? Refine it.
       if (widget.type === WidgetType.GENERATIVE_UI && widget.genUISchema) {
          newSchema = await refineGenerativeUI(widget.genUISchema, uiPrompt);
-      } 
-      // Case 2: Static Widget? Transform it first, then refine.
-      else {
-         // Step A: Initial conversion
+      } else {
          const baseSchema = await transformToGenerativeUI(widget);
-         // Step B: Refinement based on prompt
          newSchema = await refineGenerativeUI(baseSchema, uiPrompt);
       }
-      
-      // Update Widget to be Generative
       updateWidget(widget.id, {
          type: WidgetType.GENERATIVE_UI,
          genUISchema: newSchema
       });
-      
       setIsEditingUI(false);
       setUiPrompt('');
     } catch (err) {
@@ -130,13 +68,12 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
 
   if (!widget) return null;
   
-  // Defensive check
   if (!safeContent && !widget.genUISchema && widget.type !== WidgetType.EMAIL_CLIENT) {
      return (
-        <GlassPane className="h-full p-6 flex flex-col items-center justify-center text-center border-dashed border-white/10 bg-white/5">
-           <AlertTriangle className="w-8 h-8 text-white/20 mb-3" />
-           <div className="text-sm text-white/40 font-mono">Data Signal Lost</div>
-           <button onClick={() => updateWidgetContent(widget.id, {})} className="mt-4 px-3 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] text-white/40 transition-colors">Retry</button>
+        <GlassPane className="h-full p-6 flex flex-col items-center justify-center text-center border-dashed border-slate-200 bg-slate-50">
+           <AlertTriangle className="w-8 h-8 text-slate-300 mb-3" />
+           <div className="text-sm text-ink-400 font-mono">Data Signal Lost</div>
+           <button onClick={() => updateWidgetContent(widget.id, {})} className="mt-4 px-3 py-1 bg-white border border-slate-200 rounded text-[10px] text-ink-500 hover:text-ink-900 transition-colors">Retry</button>
         </GlassPane>
      );
   }
@@ -148,37 +85,34 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
     return val;
   };
 
-  // --- UI EDITOR OVERLAY ---
   const renderUIEditor = () => {
      if (!isEditingUI) return null;
      return (
-        <div className="absolute inset-0 z-50 bg-nebula-950/90 backdrop-blur-sm flex flex-col p-4 rounded-xl">
+        <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col p-4 rounded-2xl border border-tech-purple/20 shadow-xl">
            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2 text-tech-cyan">
+              <div className="flex items-center gap-2 text-tech-purple">
                  <Wand2 className="w-4 h-4" />
                  <span className="text-xs font-mono uppercase tracking-widest font-bold">UI Alchemist</span>
               </div>
-              <button onClick={() => setIsEditingUI(false)} className="text-white/40 hover:text-white"><X className="w-4 h-4" /></button>
+              <button onClick={() => setIsEditingUI(false)} className="text-ink-400 hover:text-ink-900"><X className="w-4 h-4" /></button>
            </div>
-           
            <div className="flex-1 flex flex-col justify-center gap-4">
-              <p className="text-sm text-white/70 text-center">
+              <p className="text-sm text-ink-600 text-center">
                  Describe how you want this widget to look.
-                 <br/><span className="text-xs text-white/40 opacity-50">"Make it cyberpunk red" • "Use a list layout" • "Make text bigger"</span>
+                 <br/><span className="text-xs text-ink-400 opacity-50">"Make it minimal" • "Use a list layout" • "Highlight key metrics"</span>
               </p>
-              
               <form onSubmit={handleFixUI} className="relative">
                  <input 
                    autoFocus
                    value={uiPrompt}
                    onChange={e => setUiPrompt(e.target.value)}
                    placeholder="Enter your design prompt..."
-                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-tech-cyan/50 focus:outline-none transition-colors"
+                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-ink-900 focus:border-tech-purple focus:outline-none transition-colors"
                  />
                  <button 
                    type="submit"
                    disabled={isFixingUI || !uiPrompt.trim()}
-                   className="absolute right-2 top-2 p-1.5 bg-tech-cyan text-nebula-950 rounded-lg disabled:opacity-50"
+                   className="absolute right-2 top-2 p-1.5 bg-tech-purple text-white rounded-lg disabled:opacity-50"
                  >
                    {isFixingUI ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                  </button>
@@ -188,13 +122,12 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
      );
   };
 
-  // --- MAIN RENDERER WRAPPER ---
   const renderContent = () => {
     switch (widget.type) {
       case WidgetType.GENERATIVE_UI:
         return (
           <div className="h-full relative group">
-             <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full text-[9px] font-mono text-tech-purple border border-tech-purple/20 shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+             <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-white/80 backdrop-blur-md px-2 py-1 rounded-full text-[9px] font-mono text-tech-purple border border-tech-purple/20 shadow-sm pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                <Cpu className="w-3 h-3" /> <span className="tracking-widest opacity-80">GEN_UI</span>
              </div>
              <GenerativeWidget schema={widget.genUISchema!} />
@@ -203,7 +136,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
       
       case WidgetType.EMAIL_CLIENT:
         return (
-          <div className="h-full relative overflow-hidden rounded-xl border border-white/5 bg-nebula-900/20">
+          <div className="h-full relative overflow-hidden rounded-2xl border border-slate-200 bg-white">
              <EmailClient />
           </div>
         );
@@ -211,62 +144,62 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
       case WidgetType.DIGITAL_PRESENCE:
         const { presenceScore, websiteUrl, googleMapsUrl, socialLinks, reviews, missingAssets } = safeContent;
         return (
-          <GlassPane className="h-full p-6 flex flex-col" hoverEffect>
+          <GlassPane className="h-full p-6 flex flex-col hover:border-tech-purple/30 transition-colors">
              <div className="flex items-center justify-between mb-6">
                <div className="flex items-center gap-2.5">
                  <div className="p-1.5 rounded-lg bg-tech-cyan/10">
                    <Globe className="w-4 h-4 text-tech-cyan" />
                  </div>
-                 <h3 className="text-white font-medium text-sm tracking-wide">{widget.title}</h3>
+                 <h3 className="text-ink-900 font-semibold text-sm tracking-tight">{widget.title}</h3>
                </div>
-               <MoreVertical className="w-4 h-4 text-white/20" />
+               <MoreVertical className="w-4 h-4 text-ink-300" />
              </div>
   
              <div className="flex items-center gap-8 mb-8">
                 <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
                    <svg className="w-full h-full transform -rotate-90">
-                      <circle cx="48" cy="48" r="42" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/5" />
+                      <circle cx="48" cy="48" r="42" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-slate-100" />
                       <circle cx="48" cy="48" r="42" stroke="currentColor" strokeWidth="6" fill="transparent" 
                          strokeDasharray={264}
                          strokeDashoffset={264 - (264 * (presenceScore || 0) / 100)}
                          strokeLinecap="round"
-                         className={`${(presenceScore || 0) > 70 ? 'text-tech-emerald' : (presenceScore || 0) > 40 ? 'text-tech-amber' : 'text-tech-rose'} transition-all duration-1000 shadow-glow`}
+                         className={`${(presenceScore || 0) > 70 ? 'text-tech-emerald' : (presenceScore || 0) > 40 ? 'text-tech-amber' : 'text-tech-rose'} transition-all duration-1000`}
                       />
                    </svg>
                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-light text-white tracking-tighter">{presenceScore || 0}</span>
-                      <span className="text-[9px] text-white/30 uppercase font-mono tracking-wider">Score</span>
+                      <span className="text-3xl font-bold text-ink-900 tracking-tighter">{presenceScore || 0}</span>
+                      <span className="text-[9px] text-ink-400 uppercase font-mono tracking-wider">Score</span>
                    </div>
                 </div>
                 
                 <div className="flex-1 space-y-3">
-                   <div className="flex items-center justify-between text-xs py-1 border-b border-white/5">
-                      <span className="text-white/50">Website</span>
+                   <div className="flex items-center justify-between text-xs py-1 border-b border-slate-100">
+                      <span className="text-ink-500">Website</span>
                       {websiteUrl ? (
-                         <a href={websiteUrl} target="_blank" className="flex items-center gap-1.5 text-tech-cyan hover:text-white transition-colors">
+                         <a href={websiteUrl} target="_blank" className="flex items-center gap-1.5 text-tech-cyan hover:text-tech-purple transition-colors font-medium">
                             Online <ExternalLink className="w-3 h-3" />
                          </a>
                       ) : (
-                         <span className="text-rose-400 font-mono text-[10px] bg-rose-500/10 px-1.5 py-0.5 rounded">MISSING</span>
+                         <span className="text-rose-500 font-mono text-[10px] bg-rose-50 px-1.5 py-0.5 rounded">MISSING</span>
                       )}
                    </div>
-                   <div className="flex items-center justify-between text-xs py-1 border-b border-white/5">
-                      <span className="text-white/50">Maps</span>
+                   <div className="flex items-center justify-between text-xs py-1 border-b border-slate-100">
+                      <span className="text-ink-500">Maps</span>
                       {googleMapsUrl ? (
-                         <a href={googleMapsUrl} target="_blank" className="flex items-center gap-1.5 text-tech-cyan hover:text-white transition-colors">
+                         <a href={googleMapsUrl} target="_blank" className="flex items-center gap-1.5 text-tech-cyan hover:text-tech-purple transition-colors font-medium">
                             Verified <CheckCircle2 className="w-3 h-3" />
                          </a>
                       ) : (
-                         <span className="text-rose-400 font-mono text-[10px] bg-rose-500/10 px-1.5 py-0.5 rounded">UNCLAIMED</span>
+                         <span className="text-rose-500 font-mono text-[10px] bg-rose-50 px-1.5 py-0.5 rounded">UNCLAIMED</span>
                       )}
                    </div>
                    {reviews && reviews.length > 0 && (
                       <div className="flex items-center justify-between text-xs py-1">
-                         <span className="text-white/50">Rating</span>
-                         <span className="text-white flex items-center gap-1.5">
+                         <span className="text-ink-500">Rating</span>
+                         <span className="text-ink-900 flex items-center gap-1.5 font-bold">
                             <Star className="w-3 h-3 fill-tech-amber text-tech-amber" /> 
                             <span className="font-mono">{reviews[0].rating}</span>
-                            <span className="text-white/30 text-[10px]">({reviews[0].count})</span>
+                            <span className="text-ink-400 text-[10px] font-normal">({reviews[0].count})</span>
                          </span>
                       </div>
                    )}
@@ -284,7 +217,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
                         if (link.platform.toLowerCase().includes('facebook')) Icon = Facebook;
                         
                         return (
-                           <a key={idx} href={link.url} target="_blank" className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl text-white/60 hover:text-white transition-all hover:scale-105">
+                           <a key={idx} href={link.url} target="_blank" className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-xl text-ink-500 hover:text-ink-900 transition-all hover:scale-105">
                               <Icon className="w-4 h-4" />
                            </a>
                         );
@@ -293,10 +226,10 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
                )}
   
                {missingAssets && missingAssets.length > 0 && (
-                  <div className="p-3 bg-rose-500/5 border border-rose-500/10 rounded-xl flex flex-wrap gap-2 items-center">
-                     <AlertTriangle className="w-4 h-4 text-rose-500/60" />
+                  <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl flex flex-wrap gap-2 items-center">
+                     <AlertTriangle className="w-4 h-4 text-rose-500" />
                      {missingAssets.map((asset: string, i: number) => (
-                        <span key={i} className="text-[10px] px-2 py-0.5 bg-rose-500/10 text-rose-300 rounded-full border border-rose-500/10">{asset}</span>
+                        <span key={i} className="text-[10px] px-2 py-0.5 bg-white text-rose-600 rounded-full border border-rose-100 font-medium">{asset}</span>
                      ))}
                   </div>
                )}
@@ -307,13 +240,9 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
       case WidgetType.METRIC_CARD:
         return (
           <GlassPane 
-             className="h-full relative group cursor-pointer overflow-hidden bg-gradient-to-br from-white/5 via-transparent to-transparent" 
+             className="h-full relative group cursor-pointer overflow-hidden bg-white hover:border-tech-purple/30 transition-colors" 
              onClick={() => setIsFlipped(!isFlipped)} 
-             hoverEffect
           >
-            {/* Ambient Glow */}
-            <div className={`absolute -right-10 -top-10 w-32 h-32 rounded-full blur-[60px] opacity-20 pointer-events-none transition-colors duration-500 ${safeContent.trend === 'up' ? 'bg-tech-emerald' : 'bg-tech-rose'}`} />
-  
             <AnimatePresence mode="wait">
               {!isFlipped ? (
                 <motion.div 
@@ -322,39 +251,39 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
                   className="h-full p-6 flex flex-col justify-between relative z-10"
                 >
                   <div className="flex justify-between items-start">
-                    <span className="text-white/50 text-[10px] font-mono uppercase tracking-widest font-semibold">{widget.title}</span>
-                    <div className={`flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-full border ${safeContent.trend === 'up' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                    <span className="text-ink-400 text-[10px] font-mono uppercase tracking-widest font-bold">{widget.title}</span>
+                    <div className={`flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-full border ${safeContent.trend === 'up' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
                       {safeContent.trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       <span className="font-bold">{safeContent.trend === 'up' ? '+2.4%' : '-1.1%'}</span>
                     </div>
                   </div>
                   <div className="mt-2">
-                    <div className="text-4xl lg:text-5xl font-semibold text-white tracking-tighter leading-tight drop-shadow-lg">{safeRender(safeContent.value)}</div>
-                    <div className="text-xs text-white/40 mt-1 font-mono uppercase tracking-wide">{safeRender(safeContent.unit)}</div>
+                    <div className="text-4xl lg:text-5xl font-bold text-ink-950 tracking-tighter leading-tight">{safeRender(safeContent.value)}</div>
+                    <div className="text-xs text-ink-400 mt-1 font-mono uppercase tracking-wide">{safeRender(safeContent.unit)}</div>
                   </div>
                   
                   {/* Micro Chart Visualization */}
-                  <div className="h-8 flex items-end gap-1 mt-4 opacity-30">
+                  <div className="h-8 flex items-end gap-1 mt-4">
                     {[40, 60, 45, 70, 50, 80, 65, 85].map((h, i) => (
-                      <div key={i} className={`flex-1 rounded-t-sm ${safeContent.trend === 'up' ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ height: `${h}%` }} />
+                      <div key={i} className={`flex-1 rounded-t-sm opacity-80 ${safeContent.trend === 'up' ? 'bg-tech-emerald' : 'bg-tech-rose'}`} style={{ height: `${h}%`, opacity: 0.2 + (i * 0.1) }} />
                     ))}
                   </div>
   
                   <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
-                     <Maximize2 className="w-4 h-4 text-white/40 hover:text-white transition-colors" />
+                     <Maximize2 className="w-4 h-4 text-ink-400 hover:text-tech-purple transition-colors" />
                   </div>
                 </motion.div>
               ) : (
                 <motion.div 
                   key="back"
                   initial={{ opacity: 0, rotateX: 90 }} animate={{ opacity: 1, rotateX: 0 }} exit={{ opacity: 0 }}
-                  className="h-full p-6 flex flex-col items-center justify-center text-center bg-black/40 backdrop-blur-xl"
+                  className="h-full p-6 flex flex-col items-center justify-center text-center bg-slate-50"
                 >
-                  <Target className="w-8 h-8 text-tech-cyan mb-3 opacity-80" />
-                  <div className="text-xs font-mono text-white/70 mb-4 tracking-wide">DEEP DIVE ANALYSIS</div>
+                  <Target className="w-8 h-8 text-tech-cyan mb-3" />
+                  <div className="text-xs font-mono text-ink-500 mb-4 tracking-wide font-bold">DEEP DIVE ANALYSIS</div>
                   <button 
                     onClick={(e) => { e.stopPropagation(); handleDeepDive(); }}
-                    className="px-5 py-2.5 bg-tech-cyan/10 border border-tech-cyan/30 hover:bg-tech-cyan/20 text-tech-cyan text-xs font-mono rounded-lg transition-all hover:scale-105"
+                    className="px-5 py-2.5 bg-white border border-slate-200 hover:border-tech-cyan/50 text-tech-cyan text-xs font-mono rounded-lg transition-all hover:shadow-md font-bold"
                   >
                     INITIALIZE
                   </button>
@@ -367,27 +296,27 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
       case WidgetType.SWOT_TACTICAL:
         const { strengths, weaknesses, opportunities, threats } = safeContent;
         return (
-          <GlassPane className="h-full p-0 flex flex-col" hoverEffect={false}>
-            <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between bg-white/5">
+          <GlassPane className="h-full p-0 flex flex-col hover:border-tech-purple/30 transition-colors">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                <div className="flex items-center gap-2.5">
                  <div className="p-1.5 rounded-lg bg-tech-purple/10">
                     <Scale className="w-4 h-4 text-tech-purple" />
                  </div>
-                 <h3 className="text-white text-sm font-medium tracking-wide">{widget.title}</h3>
+                 <h3 className="text-ink-900 text-sm font-semibold tracking-tight">{widget.title}</h3>
                </div>
                <div className="flex gap-1">
-                  {[1,2,3].map(i => <div key={i} className="w-1 h-1 rounded-full bg-white/20" />)}
+                  {[1,2,3].map(i => <div key={i} className="w-1 h-1 rounded-full bg-slate-300" />)}
                </div>
             </div>
-            <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-px bg-white/5">
+            <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-px bg-slate-200 border-collapse">
                {[
-                 { title: "Strengths", items: strengths, color: "text-emerald-400", bg: "bg-nebula-900/40", icon: <Zap className="w-3 h-3" /> },
-                 { title: "Weaknesses", items: weaknesses, color: "text-rose-400", bg: "bg-nebula-900/40", icon: <AlertTriangle className="w-3 h-3" /> },
-                 { title: "Opportunities", items: opportunities, color: "text-tech-cyan", bg: "bg-nebula-900/40", icon: <Lightbulb className="w-3 h-3" /> },
-                 { title: "Threats", items: threats, color: "text-tech-amber", bg: "bg-nebula-900/40", icon: <ShieldAlert className="w-3 h-3" /> },
+                 { title: "Strengths", items: strengths, color: "text-emerald-600", bg: "bg-white", icon: <Zap className="w-3 h-3" /> },
+                 { title: "Weaknesses", items: weaknesses, color: "text-rose-600", bg: "bg-white", icon: <AlertTriangle className="w-3 h-3" /> },
+                 { title: "Opportunities", items: opportunities, color: "text-tech-cyan", bg: "bg-white", icon: <Lightbulb className="w-3 h-3" /> },
+                 { title: "Threats", items: threats, color: "text-tech-amber", bg: "bg-white", icon: <ShieldAlert className="w-3 h-3" /> },
                ].map((quad, idx) => (
-                  <div key={idx} className={`p-4 ${quad.bg} overflow-y-auto custom-scrollbar group relative hover:bg-white/5 transition-colors`}>
-                     <div className={`text-[10px] font-mono uppercase tracking-widest mb-3 ${quad.color} flex items-center gap-2 opacity-80 group-hover:opacity-100`}>
+                  <div key={idx} className={`p-4 ${quad.bg} overflow-y-auto custom-scrollbar group relative hover:bg-slate-50 transition-colors`}>
+                     <div className={`text-[10px] font-mono uppercase tracking-widest mb-3 ${quad.color} flex items-center gap-2 opacity-80 group-hover:opacity-100 font-bold`}>
                        {quad.icon} {quad.title}
                      </div>
                      <ul className="space-y-2.5">
@@ -395,7 +324,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
                          <li 
                            key={i} 
                            onClick={() => handleSwotDebate(safeRender(item), quad.title)}
-                           className="text-[11px] text-white/60 hover:text-white cursor-pointer leading-relaxed pl-2 border-l border-white/5 hover:border-white/20 transition-all"
+                           className="text-[11px] text-ink-600 hover:text-ink-900 cursor-pointer leading-relaxed pl-2 border-l-2 border-slate-100 hover:border-tech-purple/50 transition-all"
                          >
                            {safeRender(item)}
                          </li>
@@ -410,15 +339,15 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
       case WidgetType.INVENTORY_TRACKER:
         const inventoryItems = Array.isArray(safeContent.items) ? safeContent.items : [];
         return (
-           <GlassPane className="h-full p-6 flex flex-col" hoverEffect>
+           <GlassPane className="h-full p-6 flex flex-col hover:border-tech-purple/30 transition-colors">
              <div className="flex items-center justify-between mb-6">
                <div className="flex items-center gap-2.5">
                  <div className="p-1.5 rounded-lg bg-emerald-500/10">
-                   <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                   <ShoppingBag className="w-4 h-4 text-emerald-500" />
                  </div>
-                 <h3 className="text-white font-medium text-sm tracking-wide">{widget.title}</h3>
+                 <h3 className="text-ink-900 font-semibold text-sm tracking-tight">{widget.title}</h3>
                </div>
-               <span className="text-[10px] text-white/30 font-mono">{inventoryItems.length} SKUs</span>
+               <span className="text-[10px] text-ink-400 font-mono font-bold bg-slate-100 px-2 py-1 rounded">{inventoryItems.length} SKUs</span>
              </div>
              
              <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2">
@@ -426,22 +355,22 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
                  const stock = item.stockLevel || 0;
                  const isLow = item.status === 'Low' || stock < 30;
                  return (
-                   <div key={idx} className="group p-2 rounded-lg hover:bg-white/5 transition-colors">
+                   <div key={idx} className="group p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all">
                      <div className="flex justify-between items-center mb-2">
-                       <span className="text-xs font-medium text-white">{safeRender(item.name)}</span>
-                       <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${isLow ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+                       <span className="text-xs font-semibold text-ink-900">{safeRender(item.name)}</span>
+                       <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border font-bold ${isLow ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
                          {isLow ? 'RESTOCK' : 'HEALTHY'}
                        </span>
                      </div>
                      <div className="flex items-center gap-3">
-                       <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                       <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                          <motion.div 
                            initial={{ width: 0 }}
                            animate={{ width: `${Math.min(stock, 100)}%` }}
                            className={`h-full rounded-full ${isLow ? 'bg-rose-500' : 'bg-emerald-500'}`} 
                          />
                        </div>
-                       <span className="text-[10px] text-white/40 font-mono w-8 text-right">{stock}%</span>
+                       <span className="text-[10px] text-ink-500 font-mono w-8 text-right font-medium">{stock}%</span>
                      </div>
                    </div>
                  );
@@ -452,37 +381,37 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
   
       case WidgetType.SUBSCRIPTION_METRICS:
         return (
-          <GlassPane className="h-full p-6 flex flex-col" hoverEffect>
+          <GlassPane className="h-full p-6 flex flex-col hover:border-tech-purple/30 transition-colors">
              <div className="flex items-center justify-between mb-6">
                <div className="flex items-center gap-2.5">
                  <div className="p-1.5 rounded-lg bg-tech-cyan/10">
                    <BarChart3 className="w-4 h-4 text-tech-cyan" />
                  </div>
-                 <h3 className="text-white font-medium text-sm tracking-wide">{widget.title}</h3>
+                 <h3 className="text-ink-900 font-semibold text-sm tracking-tight">{widget.title}</h3>
                </div>
-               <MoreVertical className="w-4 h-4 text-white/20" />
+               <MoreVertical className="w-4 h-4 text-ink-300" />
              </div>
              
              <div className="grid grid-cols-2 gap-4 mb-4 flex-1">
-                <div className="p-4 bg-gradient-to-br from-white/5 to-transparent rounded-xl border border-white/5 flex flex-col justify-between">
-                  <div className="text-[10px] text-white/40 font-mono uppercase tracking-wider mb-2">MRR</div>
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between">
+                  <div className="text-[10px] text-ink-400 font-mono uppercase tracking-wider mb-2 font-bold">MRR</div>
                   <div>
-                    <div className="text-2xl font-light text-white tracking-tight">{safeRender(safeContent.mrr)}</div>
-                    <div className="text-[10px] text-emerald-400 flex items-center gap-1 mt-1 bg-emerald-500/10 w-fit px-1.5 py-0.5 rounded"><TrendingUp className="w-2.5 h-2.5"/> {safeRender(safeContent.growth)}</div>
+                    <div className="text-2xl font-bold text-ink-900 tracking-tight">{safeRender(safeContent.mrr)}</div>
+                    <div className="text-[10px] text-emerald-600 flex items-center gap-1 mt-1 bg-emerald-50 w-fit px-1.5 py-0.5 rounded font-medium"><TrendingUp className="w-2.5 h-2.5"/> {safeRender(safeContent.growth)}</div>
                   </div>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-white/5 to-transparent rounded-xl border border-white/5 flex flex-col justify-between">
-                  <div className="text-[10px] text-white/40 font-mono uppercase tracking-wider mb-2">Churn</div>
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between">
+                  <div className="text-[10px] text-ink-400 font-mono uppercase tracking-wider mb-2 font-bold">Churn</div>
                   <div>
-                    <div className="text-2xl font-light text-white tracking-tight">{safeRender(safeContent.churn)}</div>
-                    <div className="text-[10px] text-white/30 mt-1">vs last mo</div>
+                    <div className="text-2xl font-bold text-ink-900 tracking-tight">{safeRender(safeContent.churn)}</div>
+                    <div className="text-[10px] text-ink-400 mt-1 font-medium">vs last mo</div>
                   </div>
                 </div>
              </div>
   
-             <div className="p-3 bg-nebula-900/80 rounded-xl border border-white/5 flex items-center justify-between">
-                <span className="text-[10px] text-white/50 font-mono uppercase">LTV Estimate</span>
-                <span className="text-sm font-semibold text-tech-cyan tracking-wide">{safeRender(safeContent.ltv)}</span>
+             <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center justify-between">
+                <span className="text-[10px] text-indigo-400 font-mono uppercase font-bold">LTV Estimate</span>
+                <span className="text-sm font-bold text-indigo-700 tracking-wide">{safeRender(safeContent.ltv)}</span>
              </div>
           </GlassPane>
         );
@@ -490,31 +419,31 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
       case WidgetType.CLIENT_PIPELINE:
         const stages = Array.isArray(safeContent.stages) ? safeContent.stages : [];
         return (
-          <GlassPane className="h-full p-6" hoverEffect>
+          <GlassPane className="h-full p-6 hover:border-tech-purple/30 transition-colors">
             <div className="flex items-center gap-2.5 mb-6">
               <div className="p-1.5 rounded-lg bg-tech-purple/10">
                 <Users className="w-4 h-4 text-tech-purple" />
               </div>
-              <h3 className="text-white font-medium text-sm tracking-wide">{widget.title}</h3>
+              <h3 className="text-ink-900 font-semibold text-sm tracking-tight">{widget.title}</h3>
             </div>
             <div className="space-y-5">
                {stages.map((stage: any, idx: number) => (
                  <div key={idx} className="flex items-center gap-4 group">
-                   <div className="w-20 text-[10px] font-mono text-white/40 text-right uppercase tracking-wider group-hover:text-white/60 transition-colors">{safeRender(stage.name)}</div>
+                   <div className="w-20 text-[10px] font-mono text-ink-400 text-right uppercase tracking-wider font-bold group-hover:text-ink-600 transition-colors">{safeRender(stage.name)}</div>
                    <div className="flex-1 relative h-8">
                       {/* Background Track */}
-                      <div className="absolute inset-0 bg-white/5 rounded-md border border-white/5" />
+                      <div className="absolute inset-0 bg-slate-100 rounded-md border border-slate-200" />
                       {/* Fill */}
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${Math.min((stage.count || 0) * 10, 100)}%` }}
                         transition={{ duration: 1, delay: idx * 0.1 }}
-                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-tech-purple/40 to-tech-purple/60 rounded-md border-r border-tech-purple/50 group-hover:from-tech-purple/50 group-hover:to-tech-purple/70 transition-all" 
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-tech-purple to-indigo-500 rounded-md opacity-80 group-hover:opacity-100 transition-all" 
                       />
                       {/* Content Overlay */}
                       <div className="absolute inset-0 flex items-center justify-between px-3">
-                         <span className="text-xs font-bold text-white relative z-10">{safeRender(stage.count)}</span>
-                         <span className="text-[10px] font-mono text-white/60 relative z-10">{safeRender(stage.value)}</span>
+                         <span className="text-xs font-bold text-white relative z-10 drop-shadow-md">{safeRender(stage.count)}</span>
+                         <span className="text-[10px] font-mono text-ink-500 relative z-10 bg-white/80 px-1 rounded backdrop-blur-sm">{safeRender(stage.value)}</span>
                       </div>
                    </div>
                  </div>
@@ -526,18 +455,18 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
       case WidgetType.ALERT_PANEL:
         const severity = safeRender(safeContent.severity).toLowerCase();
         const isCritical = severity === 'high' || severity === 'critical';
-        const themeColor = isCritical ? 'text-rose-100' : 'text-amber-100';
-        const glowClass = isCritical ? 'shadow-[0_0_30px_rgba(244,63,94,0.15)] border-rose-500/30' : 'shadow-[0_0_20px_rgba(245,158,11,0.1)] border-amber-500/20';
-        const bgClass = isCritical ? 'bg-gradient-to-br from-rose-500/20 via-rose-500/5 to-transparent' : 'bg-gradient-to-br from-amber-500/20 via-amber-500/5 to-transparent';
+        const themeColor = isCritical ? 'text-rose-700' : 'text-amber-700';
+        const borderClass = isCritical ? 'border-rose-200' : 'border-amber-200';
+        const bgClass = isCritical ? 'bg-rose-50' : 'bg-amber-50';
         
         return (
-           <GlassPane className={`h-full p-6 flex flex-col justify-between border ${glowClass} ${bgClass}`} hoverEffect>
+           <GlassPane className={`h-full p-6 flex flex-col justify-between border ${borderClass} ${bgClass}`} hoverEffect>
               <div className="flex justify-between items-start">
                  <div className="flex items-center gap-2">
-                    <AlertTriangle className={`w-5 h-5 ${isCritical ? 'text-rose-500' : 'text-amber-500'} animate-pulse`} />
-                    <span className={`text-xs font-mono uppercase tracking-widest ${isCritical ? 'text-rose-400' : 'text-amber-400'}`}>{isCritical ? 'CRITICAL ALERT' : 'WARNING'}</span>
+                    <AlertTriangle className={`w-5 h-5 ${isCritical ? 'text-rose-600' : 'text-amber-600'} animate-pulse`} />
+                    <span className={`text-xs font-mono uppercase tracking-widest font-bold ${isCritical ? 'text-rose-600' : 'text-amber-600'}`}>{isCritical ? 'CRITICAL ALERT' : 'WARNING'}</span>
                  </div>
-                 <div className="text-[10px] text-white/40">{new Date().toLocaleTimeString()}</div>
+                 <div className="text-[10px] text-ink-400 font-medium">{new Date().toLocaleTimeString()}</div>
               </div>
               
               <div className={`text-lg font-medium leading-relaxed ${themeColor}`}>
@@ -545,10 +474,10 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
               </div>
               
               <div className="flex gap-2 mt-4">
-                 <button className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-colors ${isCritical ? 'bg-rose-500 hover:bg-rose-400 text-white' : 'bg-amber-500 hover:bg-amber-400 text-black'}`}>
+                 <button className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-colors shadow-sm ${isCritical ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-amber-500 hover:bg-amber-400 text-white'}`}>
                     Take Action
                  </button>
-                 <button className="px-4 py-2 rounded-lg text-xs font-medium uppercase border border-white/10 hover:bg-white/5 text-white/60 hover:text-white transition-colors">
+                 <button className="px-4 py-2 rounded-lg text-xs font-bold uppercase border border-slate-200 bg-white text-ink-500 hover:text-ink-900 transition-colors">
                     Dismiss
                  </button>
               </div>
@@ -560,10 +489,10 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
         return (
           <GlassPane className="h-full p-6 flex flex-col" hoverEffect>
              <div className="flex justify-between items-center mb-4">
-               <h3 className="text-white font-medium">{widget.title}</h3>
-               <span className="text-[9px] font-mono text-white/30">{widget.type}</span>
+               <h3 className="text-ink-900 font-semibold">{widget.title}</h3>
+               <span className="text-[9px] font-mono text-ink-400 bg-slate-100 px-2 py-1 rounded">{widget.type}</span>
              </div>
-             <div className="flex-1 overflow-auto text-sm text-white/60 font-mono">
+             <div className="flex-1 overflow-auto text-sm text-ink-600 font-mono bg-slate-50 p-4 rounded-xl border border-slate-200">
                <pre>{JSON.stringify(safeContent, null, 2)}</pre>
              </div>
           </GlassPane>
@@ -579,7 +508,7 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
       <div className="absolute top-2 right-2 z-40 opacity-0 hover:opacity-100 transition-opacity">
          <button 
            onClick={(e) => { e.stopPropagation(); setIsEditingUI(true); }}
-           className="p-1.5 bg-black/60 hover:bg-tech-cyan text-white/40 hover:text-black rounded-lg backdrop-blur-sm border border-white/10 transition-all"
+           className="p-1.5 bg-white hover:bg-tech-purple text-ink-400 hover:text-white rounded-lg shadow-sm border border-slate-200 transition-all"
            title="Fix/Edit UI with AI"
          >
             <Wand2 className="w-3 h-3" />
