@@ -1,5 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { WidgetType, AgentPersona, EntityDossier, SentimentReport, ConsultationQuestion, BusinessProfile, CompetitorEntity, BusinessContext, LocationAnalysis, FinancialInputs, FinancialHealth, PitchDeck, MarketingCampaign, CrisisEvent, CrisisChoice, SimulationResult, VisionAnalysis, GenUIElement, AccessibilityMode, SaaSOnboardingData, Email, MicroTask, SpatialMessage, OracleAlert, WidgetData, MicroTaskPlan, Lead, LeadStatus, LeadChannel, FeatureProposal, AIEmployee } from "../types";
 
 const getClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -281,6 +281,82 @@ export const analyzeMultimodalPitch = async (audioBlob: Blob, videoBlob: Blob): 
       coreProduct: "Innovation",
       location: "Global"
     };
+  }
+};
+
+// --- GENESIS INTERVIEW CHAT (TEXT MODE) ---
+export const chatWithGenesisArchitect = async (
+  history: { role: string, parts: { text: string }[] }[], 
+  userInput: string
+): Promise<{ text: string, toolCalls?: any[] }> => {
+  const ai = getClient();
+  
+  if (!userInput || !userInput.trim()) {
+    return { text: "", toolCalls: [] };
+  }
+
+  // Tool definition specifically for the interview process
+  const updateBusinessContextTool: FunctionDeclaration = {
+    name: 'update_business_context',
+    description: 'Update the business dossier with information gathered during the interview. Call this whenever the user provides specific details about their business.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        industry: { type: Type.STRING, description: 'Industry type (e.g. Retail, SaaS)' },
+        revenueModel: { type: Type.STRING, description: 'How they make money (e.g. Subscription, Transactional)' },
+        targetAudience: { type: Type.STRING, description: 'Who they sell to' },
+        differentiator: { type: Type.STRING, description: 'Unique selling point' },
+        bottleneck: { type: Type.STRING, description: 'Current biggest challenge' },
+        location: { type: Type.STRING, description: 'Business location' }
+      }
+    }
+  };
+
+  try {
+    // RIGOROUS SANITIZATION for ContentUnion errors
+    const cleanHistory = history.map(h => {
+      // 1. Normalize role to 'user' or 'model'
+      const role = (h.role === 'ai' || h.role === 'model') ? 'model' : 'user';
+      
+      // 2. Ensure parts exist and have non-empty text
+      // If text is empty/undefined, use a single space " " (valid) instead of "" (invalid)
+      const validParts = (h.parts && h.parts.length > 0) 
+        ? h.parts.map(p => ({ text: p.text || " " })) 
+        : [{ text: " " }];
+
+      return { role, parts: validParts };
+    });
+
+    const chat = ai.chats.create({
+      model: 'gemini-2.5-flash',
+      history: cleanHistory as any,
+      config: {
+         systemInstruction: `
+           ROLE: Genesis Architect. 
+           GOAL: Interview the user to build EntreprenOS.
+           TONE: Professional, Inquisitive, Efficient.
+           
+           TASK:
+           Ask 1 question at a time to gather the following:
+           1. Industry
+           2. Revenue Model
+           3. Target Audience
+           4. Key Differentiator
+           5. Current Bottleneck
+           6. Location
+           
+           When you identify any of these, call the 'update_business_context' tool IMMEDIATELY with the extracted data.
+           Keep responses short (under 2 sentences).
+         `,
+         tools: [{ functionDeclarations: [updateBusinessContextTool] }]
+      }
+    });
+
+    const result = await chat.sendMessage(userInput);
+    return { text: result.response.text || "", toolCalls: result.response.functionCalls };
+  } catch (e) {
+    console.error("Genesis Chat Error", e);
+    return { text: "I'm having trouble connecting to the neural network. Please try again.", toolCalls: [] };
   }
 };
 
@@ -579,11 +655,11 @@ export const generateMicroTaskPlan = async (taskTitle: string, context: string):
   const ai = getClient();
   const prompt = `
     ROLE: Executive Function Coach for ADHD Founders.
-    TASK: Break "${taskTitle}" into atomic, gamified micro-tasks.
+    TASK: Break "${taskTitle}" into atomic, gamified micro-steps.
     USER CONTEXT: ${context}
     
     RULES:
-    1. First step must be trivial (< 2 min) to break inertia (e.g. "Open laptop").
+    1. First step must be trivial (< 2 min) to break inertia (e.g. "Open laptop", "Sit down").
     2. Add 'dependencies' only if strictly necessary.
     3. Reward points should reflect difficulty.
     
@@ -592,8 +668,7 @@ export const generateMicroTaskPlan = async (taskTitle: string, context: string):
       "taskId": "unique_id",
       "title": "${taskTitle}",
       "microTasks": [
-        { "id": "1", "title": "Open Tab", "estMinutes": 1, "dependencies": [], "isComplete": false, "rewardPoints": 10 },
-        { "id": "2", "title": "Draft Outline", "estMinutes": 5, "dependencies": ["1"], "isComplete": false, "rewardPoints": 50 }
+        { "id": "1", "title": "Step 1", "estMinutes": 1, "dependencies": [], "isComplete": false, "rewardPoints": 10 }
       ]
     }
   `;
@@ -618,17 +693,13 @@ export const askOmniStrategist = async (query: string, imageContext: string | nu
     ROLE: You are the "Omniscient Strategist" for a blind CEO running "${context.businessName}".
     CONTEXT:
     - Business Type: ${context.industry}
-    - Dashboard Data: 
-      ${widgetSummaries}
-    
+    - Dashboard Data: ${widgetSummaries}
     USER QUERY: "${query}"
-    
     VISUAL CONTEXT: ${imageContext ? "User has uploaded an image." : "No image provided."}
     
     INSTRUCTION:
     - Fuse the Visual Data (if any) with the Dashboard Data to give a strategic answer.
-    - Example: If user asks "Can I afford this machine?", look at the machine in the image (vision) AND the cash balance (dashboard).
-    - Be concise, professional, and audible-friendly (no markdown tables).
+    - Be concise, professional, and audible-friendly.
   `;
 
   try {
@@ -663,22 +734,17 @@ export const analyzeGoogleReviews = async (context: BusinessContext): Promise<{
     ROLE: Reputation Manager.
     CONTEXT: ${context.businessName}, ${context.location}.
     TASK: 
-    1. Simulate finding 5 recent Google Reviews for this business (mix of 3-5 stars, maybe one 2 star for realism).
-    2. Analyze the aggregate sentiment.
-    3. Generate a summary.
-    4. Extract 3-4 common themes (e.g. "Friendly Staff", "Slow Service", "Great Value").
-    5. EXTRACT 3 specific areas for improvement based on the negative feedback.
+    1. Simulate finding 5 recent Google Reviews.
+    2. Analyze sentiment.
+    3. Generate summary, themes, and improvements.
     
     OUTPUT JSON:
     {
-      "reviews": [
-        { "id": "1", "author": "Name", "rating": 5, "text": "...", "date": "2 days ago", "sentiment": "Positive" },
-        ...
-      ],
-      "summary": "Customers love the coffee but complain about parking...",
+      "reviews": [],
+      "summary": "...",
       "averageRating": 4.2,
-      "commonThemes": ["Quality Products", "Long Wait Times", "Friendly Atmosphere"],
-      "areasForImprovement": ["Fix the AC", "Hire more staff for weekends", "Clean the restrooms more often"]
+      "commonThemes": [],
+      "areasForImprovement": []
     }
   `;
 
@@ -690,7 +756,6 @@ export const analyzeGoogleReviews = async (context: BusinessContext): Promise<{
     });
     return (await extractJSON(response.text)) || { reviews: [], summary: "No reviews found.", averageRating: 0, commonThemes: [], areasForImprovement: [] };
   } catch (e) {
-    console.error("Review Analysis Error", e);
     return { reviews: [], summary: "Analysis failed.", averageRating: 0, commonThemes: [], areasForImprovement: [] };
   }
 };
@@ -699,19 +764,11 @@ export const analyzeGoogleReviews = async (context: BusinessContext): Promise<{
 export const chatWithShopBoard = async (message: string, context: BusinessContext, history: any[]): Promise<string> => {
   const ai = getClient();
   const prompt = `
-    ROLE: You are the "Board of Directors of the Shop".
-    IDENTITY: You are NOT a generic AI. You are a council of local business veterans (The landlord, a veteran shopkeeper, a local marketing guru).
+    ROLE: You are the "Board of Directors of the Shop" (Landlord, Shopkeeper, Marketer).
     CONTEXT: ${context.businessName} in ${context.location}.
-    
     USER MESSAGE: "${message}"
-    
     HISTORY: ${JSON.stringify(history.slice(-3))}
-    
-    INSTRUCTION:
-    - Answer as if you are standing in the shop.
-    - Be practical, sometimes gritty, always actionable.
-    - Mention local context (weather, local events, street traffic) if relevant to the answer.
-    - Short, punchy advice.
+    INSTRUCTION: Answer as a local veteran. Practical advice.
   `;
 
   try {
@@ -732,11 +789,11 @@ export const simulateIncomingLead = async (context: BusinessContext): Promise<Le
   const prompt = `
     ROLE: Customer Simulator.
     CONTEXT: Local Business "${context.businessName}" (${context.industry}).
-    TASK: Generate a realistic incoming customer inquiry/message.
+    TASK: Generate a realistic incoming customer inquiry.
     
     OUTPUT JSON:
     {
-      "text": "The message text (e.g. 'Do you have vegan cake today?')",
+      "text": "Message text",
       "sender": "Customer Name",
       "channel": "WHATSAPP | INSTAGRAM | GOOGLE | EMAIL | PHONE",
       "intent": "INQUIRY | ORDER | COMPLAINT"
@@ -768,16 +825,14 @@ export const simulateIncomingLead = async (context: BusinessContext): Promise<Le
     return lead;
 
   } catch (e) {
-    console.error(e);
-    // Fallback
     return {
        id: Math.random().toString(),
        name: "Rajesh Kumar",
        channel: "WHATSAPP",
        status: 'NEW',
-       lastMessage: "Hi, are you open right now?",
+       lastMessage: "Hi, are you open?",
        timestamp: Date.now(),
-       history: [{ id: Math.random().toString(), sender: 'customer', text: "Hi, are you open right now?", timestamp: Date.now() }],
+       history: [{ id: Math.random().toString(), sender: 'customer', text: "Hi, are you open?", timestamp: Date.now() }],
        intent: 'INQUIRY'
     };
   }
@@ -790,22 +845,16 @@ export const processLeadMessage = async (lead: Lead, context: BusinessContext, t
 }> => {
    const ai = getClient();
    const prompt = `
-     ROLE: Sales & Support AI.
-     CONTEXT: "${context.businessName}" (${context.industry}).
-     AUTO-REPLY TEMPLATE: "${template}"
-     CUSTOMER MESSAGE: "${lead.lastMessage}"
+     ROLE: Sales AI.
+     CONTEXT: "${context.businessName}".
+     TEMPLATE: "${template}"
+     MSG: "${lead.lastMessage}"
      INTENT: ${lead.intent}
-     
-     TASK:
-     1. Decide if we can Auto-Respond. 
-        - YES if it's a simple inquiry about hours, location, or stock that fits the template or general knowledge.
-        - NO if it's a complaint, complex order, or requires human judgment.
-     2. Draft the reply.
      
      OUTPUT JSON:
      {
        "autoResponded": boolean,
-       "reply": "The message to send back",
+       "reply": "Message",
        "newStatus": "AUTO_RESPONDED | REQUIRES_ACTION | CONVERTED"
      }
    `;
@@ -817,9 +866,9 @@ export const processLeadMessage = async (lead: Lead, context: BusinessContext, t
       config: { responseMimeType: 'application/json' }
     });
     const data = await extractJSON(response.text);
-    return data || { reply: "I'll check on that.", autoResponded: false, newStatus: 'REQUIRES_ACTION' };
+    return data || { reply: "I'll check.", autoResponded: false, newStatus: 'REQUIRES_ACTION' };
    } catch (e) {
-     return { reply: "System error. Please reply manually.", autoResponded: false, newStatus: 'REQUIRES_ACTION' };
+     return { reply: "Error.", autoResponded: false, newStatus: 'REQUIRES_ACTION' };
    }
 };
 
@@ -828,31 +877,10 @@ export const processLeadMessage = async (lead: Lead, context: BusinessContext, t
 export const researchStrategicFeatures = async (context: BusinessContext): Promise<FeatureProposal[]> => {
   const ai = getClient();
   const prompt = `
-    ROLE: Chief Product Officer & Innovation Strategist.
+    ROLE: Chief Product Officer.
     CONTEXT: ${context.businessName} (${context.industry}).
-    GOAL: Perform a rigorous R&D analysis to identify high-impact features or service expansions.
-    
-    METHODOLOGY: RICE Framework (Reach, Impact, Confidence, Effort).
-    
-    TASK:
-    1. Brainstorm 3 strategic proposals.
-    2. Score them.
-    3. Analyze feasibility and competitor adoption.
-    
-    OUTPUT JSON ARRAY:
-    [
-      {
-        "id": "1",
-        "title": "Name of feature",
-        "tagline": "Short pitch",
-        "description": "Detailed explanation",
-        "riceScore": 85, // 0-100
-        "feasibility": "High", // High/Medium/Low
-        "competitorAdoption": "Blue Ocean | Standard | Catch-up",
-        "implementationSteps": ["Step 1", "Step 2", "Step 3"],
-        "expectedROI": "High"
-      }
-    ]
+    TASK: RICE framework analysis for 3 feature ideas.
+    OUTPUT JSON ARRAY: [ { "title": "...", "riceScore": 85, ... } ]
   `;
 
   try {
@@ -864,7 +892,6 @@ export const researchStrategicFeatures = async (context: BusinessContext): Promi
     const data = await extractJSON(response.text);
     return Array.isArray(data) ? data : [];
   } catch (e) {
-    console.error("Feature Research Failed", e);
     return [];
   }
 };
@@ -873,43 +900,22 @@ export const researchStrategicFeatures = async (context: BusinessContext): Promi
 
 export const transformToGenerativeUI = async (widgetData: WidgetData): Promise<GenUIElement> => {
   const ai = getClient();
-  const prompt = `
-    ROLE: UI Engineer & Designer.
-    TASK: Convert this static widget data into a Generative UI Schema (JSON).
-    INPUT DATA: ${JSON.stringify(widgetData)}
-    
-    REQUIREMENTS:
-    1. Create a schema that visually represents the data (e.g., if it's a list, use a 'list' element; if metrics, use 'layout' with 'metric' children).
-    2. Use 'card', 'layout', 'text', 'button', 'metric', 'chart', 'list', 'divider' types.
-    3. Return ONLY the JSON object for the schema.
-  `;
-  
+  const prompt = `Convert widget data to GenUI JSON schema. DATA: ${JSON.stringify(widgetData)}`;
   try {
      const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
         config: { responseMimeType: 'application/json' }
      });
-     return (await extractJSON(response.text)) || { id: "error-ui", type: 'text', props: { content: 'Conversion failed' } };
+     return (await extractJSON(response.text)) || { id: "error", type: 'text', props: { content: 'Error' } };
   } catch (e) {
-     return { id: "error-ui", type: 'text', props: { content: 'Conversion error' } };
+     return { id: "error", type: 'text', props: { content: 'Error' } };
   }
 };
 
 export const refineGenerativeUI = async (currentSchema: GenUIElement, userInstruction: string): Promise<GenUIElement> => {
   const ai = getClient();
-  const prompt = `
-    ROLE: Expert UI Designer.
-    TASK: Modify the existing UI Schema based on the user's instruction.
-    CURRENT SCHEMA: ${JSON.stringify(currentSchema)}
-    USER INSTRUCTION: "${userInstruction}"
-    
-    REQUIREMENTS:
-    1. Apply the user's requested changes (e.g., "change color to red", "add a button", "make text bigger").
-    2. Maintain valid JSON structure for the GenUIElement type.
-    3. Return ONLY the updated JSON object.
-  `;
-
+  const prompt = `Modify UI Schema based on instruction: "${userInstruction}". SCHEMA: ${JSON.stringify(currentSchema)}`;
   try {
      const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",

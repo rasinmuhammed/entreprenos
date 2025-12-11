@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/appStore';
 import { AccessibilityMode } from '../../types';
-import { Volume2, Focus, Eye, Cpu, User, Heart } from 'lucide-react';
+import { Volume2, Focus, Eye, Cpu, User, Heart, ArrowRight } from 'lucide-react';
 import { ContextEngine } from '../modules/ContextEngine';
 
 export const LandingPage: React.FC = () => {
@@ -27,25 +27,50 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden text-center bg-nebula-950">
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.1)_0%,transparent_70%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden text-center bg-slate-50 text-ink-950">
+      {/* Executive Background */}
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.05)_0%,transparent_50%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.02)_1px,transparent_1px)] bg-[size:40px_40px] opacity-100 pointer-events-none" />
 
       <AnimatePresence mode="wait">
         {step === 0 && (
           <motion.div key="role" initial="hidden" animate="visible" exit="exit" variants={variants} className="max-w-4xl w-full z-10">
-            <h1 className="text-5xl md:text-6xl font-light text-white tracking-tighter mb-4">Entrepren<span className="text-tech-cyan font-normal">OS</span></h1>
-            <p className="text-white/40 mb-12 text-lg">Who is configuring the system?</p>
+            <div className="mb-12">
+               <h1 className="text-6xl md:text-7xl font-bold font-display tracking-tighter mb-6 text-ink-950">
+                  Entrepren<span className="text-tech-purple">OS</span>
+               </h1>
+               <p className="text-ink-500 text-xl font-light max-w-2xl mx-auto">
+                  The world's first adaptive operating system for founders. 
+                  <br />Configures itself to your neurology.
+               </p>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-              <button onClick={() => handleRoleSelect('FOUNDER')} className="p-8 bg-nebula-900/50 border border-white/10 hover:border-tech-cyan/50 rounded-2xl transition-all text-left hover:bg-tech-cyan/5 group">
-                <div className="w-14 h-14 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-tech-cyan/20"><User className="w-8 h-8 text-white group-hover:text-tech-cyan" /></div>
-                <h3 className="text-2xl text-white font-medium mb-2">I am the Founder</h3>
-                <p className="text-white/50 text-sm">"Tailor the interface to my personal strengths."</p>
+              <button 
+                onClick={() => handleRoleSelect('FOUNDER')} 
+                className="p-8 bg-white border border-slate-200 hover:border-tech-purple/50 rounded-2xl transition-all text-left hover:shadow-xl group relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="w-14 h-14 bg-indigo-50 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform relative z-10">
+                   <User className="w-7 h-7 text-tech-purple" />
+                </div>
+                <h3 className="text-2xl font-bold text-ink-950 mb-2 relative z-10">I am the Founder</h3>
+                <p className="text-ink-500 text-sm relative z-10">"Tailor the interface to my personal strengths and cognition."</p>
+                <div className="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                   <ArrowRight className="w-6 h-6 text-tech-purple" />
+                </div>
               </button>
-              <button onClick={() => handleRoleSelect('ALLY')} className="p-8 bg-nebula-900/50 border border-white/10 hover:border-tech-purple/50 rounded-2xl transition-all text-left hover:bg-tech-purple/5 group">
-                <div className="w-14 h-14 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-tech-purple/20"><Heart className="w-8 h-8 text-white group-hover:text-tech-purple" /></div>
-                <h3 className="text-2xl text-white font-medium mb-2">I am a Trusted Ally</h3>
-                <p className="text-white/50 text-sm">"I'm setting this up for someone else."</p>
+
+              <button 
+                onClick={() => handleRoleSelect('ALLY')} 
+                className="p-8 bg-white border border-slate-200 hover:border-tech-cyan/50 rounded-2xl transition-all text-left hover:shadow-xl group relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="w-14 h-14 bg-cyan-50 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform relative z-10">
+                   <Heart className="w-7 h-7 text-tech-cyan" />
+                </div>
+                <h3 className="text-2xl font-bold text-ink-950 mb-2 relative z-10">I am a Trusted Ally</h3>
+                <p className="text-ink-500 text-sm relative z-10">"I'm setting this up to support a founder I care about."</p>
               </button>
             </div>
           </motion.div>
@@ -53,19 +78,26 @@ export const LandingPage: React.FC = () => {
 
         {step === 1 && (
           <motion.div key="calibration" initial="hidden" animate="visible" exit="exit" variants={variants} className="max-w-6xl w-full z-10">
-            <h2 className="text-3xl md:text-4xl font-light text-white mb-2">Interface Harmony</h2>
-            <p className="text-white/40 mb-12 text-lg">What is your primary way of interacting?</p>
+            <h2 className="text-4xl md:text-5xl font-bold font-display text-ink-950 mb-4 tracking-tight">Interface Calibration</h2>
+            <p className="text-ink-500 mb-12 text-lg">How do you prefer to interact with complex information?</p>
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { mode: AccessibilityMode.SONIC_VIEW, icon: <Volume2 className="w-8 h-8" />, label: "I navigate by sound", desc: "Audio-first. Spatial cues.", color: "text-yellow-400" },
-                { mode: AccessibilityMode.FOCUS_SHIELD, icon: <Focus className="w-8 h-8" />, label: "I think in bursts", desc: "Distraction-free. Gamified.", color: "text-emerald-400" },
-                { mode: AccessibilityMode.SENTIMENT_HUD, icon: <Eye className="w-8 h-8" />, label: "I read visually", desc: "Subtext captions. Visual alerts.", color: "text-cyan-400" },
-                { mode: AccessibilityMode.STANDARD, icon: <Cpu className="w-8 h-8" />, label: "Fully operational", desc: "High-density dashboard.", color: "text-white" }
+                { mode: AccessibilityMode.SONIC_VIEW, icon: <Volume2 className="w-8 h-8" />, label: "Sonic View", desc: "Audio-first. I navigate by sound and conversation.", color: "text-amber-500", bg: "bg-amber-50", border: "hover:border-amber-300" },
+                { mode: AccessibilityMode.FOCUS_SHIELD, icon: <Focus className="w-8 h-8" />, label: "Focus Shield", desc: "One task at a time. No distractions. Gamified flow.", color: "text-emerald-600", bg: "bg-emerald-50", border: "hover:border-emerald-300" },
+                { mode: AccessibilityMode.SENTIMENT_HUD, icon: <Eye className="w-8 h-8" />, label: "Sentiment HUD", desc: "Visual subtext. I need help reading emotional cues.", color: "text-tech-cyan", bg: "bg-cyan-50", border: "hover:border-cyan-300" },
+                { mode: AccessibilityMode.STANDARD, icon: <Cpu className="w-8 h-8" />, label: "Command Center", desc: "High density. I want to see everything at once.", color: "text-tech-purple", bg: "bg-indigo-50", border: "hover:border-indigo-300" }
               ].map((opt) => (
-                <button key={opt.mode} onClick={() => handleModeSelect(opt.mode)} className={`flex flex-col items-center p-8 bg-nebula-900/40 border border-white/10 rounded-2xl transition-all group hover:bg-white/5 hover:border-white/30`}>
-                  <div className={`w-16 h-16 rounded-full bg-black/40 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${opt.color}`}>{opt.icon}</div>
-                  <h3 className={`text-xl font-medium mb-3 ${opt.color}`}>{opt.label}</h3>
-                  <p className="text-sm text-white/50">{opt.desc}</p>
+                <button 
+                  key={opt.mode} 
+                  onClick={() => handleModeSelect(opt.mode)} 
+                  className={`flex flex-col items-center p-8 bg-white border border-slate-200 rounded-2xl transition-all group hover:shadow-xl ${opt.border}`}
+                >
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${opt.bg} ${opt.color}`}>
+                     {opt.icon}
+                  </div>
+                  <h3 className="text-xl font-bold text-ink-900 mb-2">{opt.label}</h3>
+                  <p className="text-sm text-ink-500">{opt.desc}</p>
                 </button>
               ))}
             </div>

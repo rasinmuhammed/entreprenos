@@ -18,7 +18,6 @@ export const EmailClient: React.FC = () => {
 
   const [draftReply, setDraftReply] = useState<string>('');
   const [isDrafting, setIsDrafting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'Inbox' | 'Archived'>('Inbox');
 
   useEffect(() => {
     if (emails.length === 0 && !isProcessingEmails && context) {
@@ -42,10 +41,8 @@ export const EmailClient: React.FC = () => {
   const handleSelectEmail = async (id: string) => {
     setSelectedEmailId(id);
     markEmailRead(id);
-    setDraftReply(''); // Reset
+    setDraftReply(''); 
     
-    // Auto-draft if feature enabled or in a "Speed Mode"
-    // For now, let's auto-draft only if it has a suggested reply from the first pass
     const email = emails.find(e => e.id === id);
     if (email?.suggestedReply) {
        setDraftReply(email.suggestedReply);
@@ -65,19 +62,19 @@ export const EmailClient: React.FC = () => {
 
   const handleSend = () => {
      if (selectedEmailId) {
-        archiveEmail(selectedEmailId); // Simulate sending by archiving
+        archiveEmail(selectedEmailId); 
         setSelectedEmailId(null);
      }
   };
 
   const isFocusMode = accessibilityMode === AccessibilityMode.FOCUS_SHIELD;
 
-  // --- FOCUS MODE RENDERER (Single Card Stack) ---
+  // --- FOCUS MODE RENDERER (Single Card Stack - Dark Mode Override) ---
   if (isFocusMode) {
-    const activeEmail = emails.find(e => !e.isRead) || emails[0]; // Just show first unread or first
+    const activeEmail = emails.find(e => !e.isRead) || emails[0]; 
     
     if (!activeEmail) return (
-       <div className="h-full flex flex-col items-center justify-center text-center p-8">
+       <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-zinc-950">
           <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6">
              <Check className="w-12 h-12 text-emerald-400" />
           </div>
@@ -87,7 +84,7 @@ export const EmailClient: React.FC = () => {
     );
 
     return (
-       <div className="h-full flex flex-col items-center justify-center p-8 max-w-3xl mx-auto">
+       <div className="h-full flex flex-col items-center justify-center p-8 max-w-3xl mx-auto bg-zinc-950">
           <div className="w-full mb-6 flex justify-between items-center text-zinc-500 font-mono text-sm uppercase">
              <span>Focus Inbox</span>
              <span>{emails.length} Remaining</span>
@@ -129,47 +126,47 @@ export const EmailClient: React.FC = () => {
     );
   }
 
-  // --- STANDARD MODE RENDERER ---
+  // --- STANDARD MODE RENDERER (Light Theme) ---
   return (
     <div className="h-[calc(100vh-6rem)] flex gap-6 p-6">
       
       {/* SIDEBAR: EMAIL LIST */}
-      <GlassPane className="w-96 flex flex-col p-0 overflow-hidden bg-nebula-900/40">
-        <div className="p-4 border-b border-white/5 flex items-center justify-between">
-           <div className="flex items-center gap-2 text-white">
-              <Inbox className="w-5 h-5" />
-              <span className="font-medium">Inbox</span>
-              <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px]">{emails.length}</span>
+      <GlassPane className="w-96 flex flex-col p-0 overflow-hidden bg-slate-50 border-slate-200">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
+           <div className="flex items-center gap-2 text-ink-900">
+              <Inbox className="w-5 h-5 text-tech-purple" />
+              <span className="font-bold">Inbox</span>
+              <span className="bg-slate-100 text-ink-500 px-1.5 py-0.5 rounded text-[10px] font-mono">{emails.length}</span>
            </div>
-           <button onClick={loadEmails} className="p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white transition-colors">
+           <button onClick={loadEmails} className="p-2 hover:bg-slate-100 rounded-full text-ink-400 hover:text-ink-900 transition-colors">
              {isProcessingEmails ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
            </button>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar">
            {isProcessingEmails && emails.length === 0 ? (
-              <div className="p-8 text-center text-white/30 text-xs font-mono animate-pulse">
+              <div className="p-8 text-center text-ink-400 text-xs font-mono animate-pulse">
                  SYNCING WITH NEURAL NET...
               </div>
            ) : (
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-slate-100">
                  {emails.map(email => (
                     <button
                       key={email.id}
                       onClick={() => handleSelectEmail(email.id)}
-                      className={`w-full text-left p-4 hover:bg-white/5 transition-colors group relative ${selectedEmailId === email.id ? 'bg-white/5' : ''}`}
+                      className={`w-full text-left p-4 hover:bg-white transition-colors group relative ${selectedEmailId === email.id ? 'bg-white shadow-sm z-10' : 'bg-transparent'}`}
                     >
-                       {selectedEmailId === email.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-tech-cyan" />}
+                       {selectedEmailId === email.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-tech-purple" />}
                        <div className="flex justify-between items-start mb-1">
-                          <span className={`text-sm font-medium truncate pr-2 ${email.isRead ? 'text-white/60' : 'text-white'}`}>{email.sender}</span>
-                          <span className="text-[10px] text-white/30 whitespace-nowrap">2m ago</span>
+                          <span className={`text-sm font-bold truncate pr-2 ${email.isRead ? 'text-ink-500' : 'text-ink-900'}`}>{email.sender}</span>
+                          <span className="text-[10px] text-ink-400 whitespace-nowrap">2m ago</span>
                        </div>
-                       <div className={`text-xs mb-1 truncate ${email.isRead ? 'text-white/50' : 'text-white font-medium'}`}>{email.subject}</div>
-                       <div className="text-[10px] text-white/40 line-clamp-2 leading-relaxed">{email.aiSummary || email.snippet}</div>
+                       <div className={`text-xs mb-1 truncate ${email.isRead ? 'text-ink-400' : 'text-ink-800 font-semibold'}`}>{email.subject}</div>
+                       <div className="text-[10px] text-ink-400 line-clamp-2 leading-relaxed">{email.aiSummary || email.snippet}</div>
                        
                        {email.priority === 'High' && (
                           <div className="mt-2 flex">
-                             <span className="text-[9px] bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/20 font-mono uppercase">High Priority</span>
+                             <span className="text-[9px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100 font-mono uppercase font-bold">High Priority</span>
                           </div>
                        )}
                     </button>
@@ -182,28 +179,28 @@ export const EmailClient: React.FC = () => {
       {/* MAIN: READING PANE */}
       <div className="flex-1 flex flex-col overflow-hidden">
          {selectedEmailId ? (
-            <GlassPane className="h-full flex flex-col p-0 relative">
+            <GlassPane className="h-full flex flex-col p-0 relative bg-white shadow-crisp">
                {(() => {
                   const email = emails.find(e => e.id === selectedEmailId)!;
                   return (
                     <>
                        {/* Header */}
-                       <div className="p-6 border-b border-white/5">
+                       <div className="p-8 border-b border-slate-100">
                           <div className="flex justify-between items-start mb-4">
-                             <h1 className="text-2xl font-light text-white leading-tight">{email.subject}</h1>
+                             <h1 className="text-2xl font-bold text-ink-900 leading-tight">{email.subject}</h1>
                              <div className="flex gap-2">
-                                <button onClick={() => archiveEmail(email.id)} className="p-2 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition-colors" title="Archive">
+                                <button onClick={() => archiveEmail(email.id)} className="p-2 hover:bg-slate-50 rounded-lg text-ink-400 hover:text-ink-900 transition-colors" title="Archive">
                                    <Archive className="w-5 h-5" />
                                 </button>
                              </div>
                           </div>
                           <div className="flex items-center gap-3">
-                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                             <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-ink-600 font-bold">
                                 {email.sender[0]}
                              </div>
                              <div>
-                                <div className="text-sm text-white font-medium">{email.sender}</div>
-                                <div className="text-xs text-white/40">to me • {new Date(email.receivedAt).toLocaleTimeString()}</div>
+                                <div className="text-sm text-ink-900 font-bold">{email.sender}</div>
+                                <div className="text-xs text-ink-400">to me • {new Date(email.receivedAt).toLocaleTimeString()}</div>
                              </div>
                           </div>
                        </div>
@@ -211,48 +208,48 @@ export const EmailClient: React.FC = () => {
                        {/* Body */}
                        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                           {/* AI Context Card */}
-                          <div className="mb-8 p-4 bg-tech-cyan/5 border border-tech-cyan/10 rounded-xl relative overflow-hidden">
-                             <div className="flex items-center gap-2 mb-2 text-tech-cyan">
+                          <div className="mb-8 p-4 bg-indigo-50 border border-indigo-100 rounded-xl relative overflow-hidden">
+                             <div className="flex items-center gap-2 mb-2 text-tech-purple">
                                 <Sparkles className="w-4 h-4" />
-                                <span className="text-xs font-mono uppercase tracking-widest">AI Analysis</span>
+                                <span className="text-xs font-mono uppercase tracking-widest font-bold">AI Analysis</span>
                              </div>
-                             <p className="text-sm text-white/80">{email.aiSummary}</p>
+                             <p className="text-sm text-ink-700 font-medium">{email.aiSummary}</p>
                           </div>
 
-                          <div className="text-white/80 text-sm leading-7 whitespace-pre-wrap font-light">
+                          <div className="text-ink-800 text-sm leading-7 whitespace-pre-wrap font-medium">
                              {email.body}
                           </div>
                        </div>
 
                        {/* Reply Area */}
-                       <div className="p-6 bg-nebula-950/30 border-t border-white/5">
+                       <div className="p-6 bg-slate-50 border-t border-slate-200">
                           {draftReply ? (
                              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                                <div className="flex items-center justify-between text-xs text-white/40 font-mono uppercase">
+                                <div className="flex items-center justify-between text-xs text-ink-400 font-mono uppercase font-bold">
                                    <span>Draft Reply (AI Generated)</span>
-                                   <button onClick={() => setDraftReply('')} className="hover:text-white">Discard</button>
+                                   <button onClick={() => setDraftReply('')} className="hover:text-rose-600 transition-colors">Discard</button>
                                 </div>
                                 <textarea 
                                    value={draftReply}
                                    onChange={(e) => setDraftReply(e.target.value)}
-                                   className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-tech-cyan/50 resize-none"
+                                   className="w-full h-32 bg-white border border-slate-200 rounded-xl p-4 text-ink-900 text-sm focus:outline-none focus:border-tech-purple focus:ring-1 focus:ring-tech-purple/20 resize-none transition-all shadow-inner"
                                 />
                                 <div className="flex justify-end gap-3">
-                                   <button className="px-4 py-2 rounded-lg border border-white/10 text-white/60 text-xs hover:bg-white/5">Edit</button>
-                                   <button onClick={handleSend} className="px-6 py-2 bg-tech-cyan hover:bg-cyan-400 text-nebula-950 font-medium rounded-lg text-sm flex items-center gap-2">
+                                   <button className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-ink-600 text-xs hover:bg-slate-50 font-bold shadow-sm">Edit</button>
+                                   <button onClick={handleSend} className="px-6 py-2 bg-tech-purple hover:bg-indigo-600 text-white font-bold rounded-lg text-sm flex items-center gap-2 shadow-md">
                                       Send Reply <Send className="w-3 h-3" />
                                    </button>
                                 </div>
                              </motion.div>
                           ) : (
                              <div className="flex gap-3">
-                                <div className="text-xs text-white/30 py-2">Quick Reply:</div>
+                                <div className="text-xs text-ink-400 py-2 font-bold uppercase tracking-wide">Quick Reply:</div>
                                 {['Professional', 'Casual', 'Direct'].map(tone => (
                                    <button 
                                       key={tone}
                                       onClick={() => handleGenerateFullReply(tone as any)}
                                       disabled={isDrafting}
-                                      className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 text-xs text-white/70 transition-colors flex items-center gap-2"
+                                      className="px-4 py-2 rounded-lg bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-xs text-ink-600 transition-all flex items-center gap-2 font-medium shadow-sm"
                                    >
                                       {isDrafting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-tech-purple" />}
                                       {tone}
@@ -266,9 +263,11 @@ export const EmailClient: React.FC = () => {
                })()}
             </GlassPane>
          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
-               <Mail className="w-16 h-16 text-white/20 mb-4" />
-               <p className="text-white/40">Select an email to triage</p>
+            <div className="h-full flex flex-col items-center justify-center text-center opacity-50 bg-slate-50 border border-slate-200 border-dashed rounded-2xl">
+               <div className="p-6 bg-slate-100 rounded-full mb-4">
+                  <Mail className="w-12 h-12 text-ink-300" />
+               </div>
+               <p className="text-ink-500 font-medium">Select an email to triage</p>
             </div>
          )}
       </div>

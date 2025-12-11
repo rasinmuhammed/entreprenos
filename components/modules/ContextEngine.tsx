@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Video, StopCircle, Camera, MessageSquare, Zap, MapPin, Check, BrainCircuit } from 'lucide-react';
+import { Mic, Video, StopCircle, Camera, MessageSquare, Zap, MapPin, Check, BrainCircuit, Send, User, Bot, Loader2 } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
-import { performDeepResearch, constructDashboard, generateTeamStructure, generateMicroTaskPlan } from '../../services/geminiService';
+import { performDeepResearch, constructDashboard, generateTeamStructure, generateMicroTaskPlan, chatWithGenesisArchitect } from '../../services/geminiService';
 import { GlassPane } from '../ui/GlassPane';
 import { SystemBuilder } from './SystemBuilder';
 import { useMultimodalInput } from '../../hooks/useMultimodalInput';
@@ -16,12 +16,13 @@ enum Phase { INIT = 0, PITCH = 1, INTERVIEW = 2, ANALYZING = 4, VERIFY_LOCATION 
 export const ContextEngine: React.FC = () => {
   const { 
     setContext, setWidgets, setDossier, setSentiment, startOnboarding, 
-    accessibilityMode, research, setThemeMode, setTeam, startFocusSession, team 
+    accessibilityMode, research, setThemeMode, setTeam, startFocusSession, team, updateDossier 
   } = useAppStore();
   
   const [phase, setPhase] = useState<Phase>(Phase.INIT);
   const [error, setError] = useState<string | null>(null);
   const [interviewStarted, setInterviewStarted] = useState(false);
+  const [interactionMode, setInteractionMode] = useState<'VOICE' | 'TEXT'>('VOICE');
   
   const { isRecording, startRecording, stopRecording, stream } = useMultimodalInput();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -42,7 +43,8 @@ export const ContextEngine: React.FC = () => {
   }, [stream]);
 
   useEffect(() => {
-    if (phase === Phase.INTERVIEW && !interviewStarted) {
+    // Only auto-connect live bridge if we are in Voice mode and Interview phase
+    if (phase === Phase.INTERVIEW && interactionMode === 'VOICE' && !interviewStarted) {
        setInterviewStarted(true);
        if (accessibilityMode === AccessibilityMode.SONIC_VIEW) {
           setTimeout(() => {
@@ -57,8 +59,11 @@ export const ContextEngine: React.FC = () => {
              systemInstruction: `ROLE: Genesis Architect. GOAL: Interview to build EntreprenOS. Extract Industry, Revenue Model, Target Audience, Differentiator, Bottleneck.`
           });
        }
+    } else if (interactionMode === 'TEXT') {
+       // If switching to text, disconnect live bridge
+       liveBridge.disconnect();
     }
-  }, [phase, interviewStarted, accessibilityMode]);
+  }, [phase, interviewStarted, accessibilityMode, interactionMode]);
 
   const handleStopPitch = async () => {
     if (!isRecording) return;
@@ -83,12 +88,13 @@ export const ContextEngine: React.FC = () => {
 
   const handleBuild = async (dossier: any) => {
     try {
-      liveBridge.sendText("Initiating EntreprenOS construction sequence.");
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      liveBridge.disconnect();
+      if (interactionMode === 'VOICE') {
+         liveBridge.sendText("Initiating EntreprenOS construction sequence.");
+         await new Promise(resolve => setTimeout(resolve, 3000));
+         liveBridge.disconnect();
+      }
 
       setPhase(Phase.BUILDING);
-      
       setThemeMode(ThemeMode.NEBULA);
 
       const dashboardPromise = constructDashboard(dossier, { overallSentiment: "Neutral", keyPraises: [], keyComplaints: [], recentEvents: [] });
@@ -149,20 +155,37 @@ export const ContextEngine: React.FC = () => {
                   {isRecording ? "Listening..." : "Tap to Speak"}
                </div>
             </GlassPane>
-            <button onClick={() => setPhase(Phase.INTERVIEW)} className="mt-8 text-ink-400 hover:text-tech-purple text-sm font-medium flex items-center gap-2 mx-auto transition-colors"><MessageSquare className="w-4 h-4" /> Text Mode</button>
+            <button 
+               onClick={() => {
+                  setPhase(Phase.INTERVIEW);
+                  setInteractionMode('TEXT');
+               }} 
+               className="mt-8 text-ink-400 hover:text-tech-purple text-sm font-medium flex items-center gap-2 mx-auto transition-colors"
+            >
+               <MessageSquare className="w-4 h-4" /> Switch to Text Mode
+            </button>
           </motion.div>
         )}
 
         {/* PHASE 2: INTERVIEW */}
         {phase === Phase.INTERVIEW && (
            <motion.div key="interview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center w-full">
-              <div className="w-32 h-32 rounded-full bg-white border border-slate-100 shadow-xl flex items-center justify-center mb-8 relative">
-                 <BrainCircuit className="w-16 h-16 text-tech-purple animate-pulse" />
-                 <div className="absolute inset-0 border border-tech-purple/20 rounded-full animate-ping opacity-50" />
-              </div>
               
-              <h2 className="text-4xl font-bold font-display text-ink-950 mb-3 tracking-tight">Architect Active</h2>
-              <p className="text-ink-600 mb-12 max-w-lg text-center text-lg">I am interviewing you to build your business infrastructure. Extracting data...</p>
+              {interactionMode === 'VOICE' ? (
+                 <>
+                    <div className="w-32 h-32 rounded-full bg-white border border-slate-100 shadow-xl flex items-center justify-center mb-8 relative">
+                       <BrainCircuit className="w-16 h-16 text-tech-purple animate-pulse" />
+                       <div className="absolute inset-0 border border-tech-purple/20 rounded-full animate-ping opacity-50" />
+                    </div>
+                    
+                    <h2 className="text-4xl font-bold font-display text-ink-950 mb-3 tracking-tight">Architect Active</h2>
+                    <p className="text-ink-600 mb-12 max-w-lg text-center text-lg">I am interviewing you to build your business infrastructure. Extracting data...</p>
+                 </>
+              ) : (
+                 <TextInterview onUpdate={(data) => {
+                    updateDossier(data);
+                 }} />
+              )}
 
               {/* Data Extraction Cards */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-4xl mb-12">
@@ -197,6 +220,118 @@ export const ContextEngine: React.FC = () => {
       </AnimatePresence>
     </div>
   );
+};
+
+const TextInterview: React.FC<{ onUpdate: (data: any) => void }> = ({ onUpdate }) => {
+   // Initial history with alternating User/Model turns.
+   const [history, setHistory] = useState<{ role: string, parts: { text: string }[] }[]>([
+      { role: "user", parts: [{ text: "Start the interview now. Ask me about my business." }] },
+      { role: "model", parts: [{ text: "Hello. I'm the Genesis Architect. Let's build your OS. First, what industry are you in?" }] }
+   ]);
+   
+   // UI messages (skip the hidden primer)
+   const [messages, setMessages] = useState<{ id: string, sender: 'user'|'ai', text: string }[]>([
+      { id: 'init', sender: 'ai', text: "Hello. I'm the Genesis Architect. Let's build your OS. First, what industry are you in?" }
+   ]);
+   const [input, setInput] = useState('');
+   const [isThinking, setIsThinking] = useState(false);
+   const scrollRef = useRef<HTMLDivElement>(null);
+
+   useEffect(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+   }, [messages]);
+
+   const handleSend = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!input.trim()) return;
+
+      const userMsg = input;
+      setInput('');
+      
+      // Optimistic Update
+      setMessages(prev => [...prev, { id: Math.random().toString(), sender: 'user', text: userMsg }]);
+      setIsThinking(true);
+
+      try {
+         // Pass the EXISTING history to the service.
+         const { text, toolCalls } = await chatWithGenesisArchitect(history, userMsg);
+         
+         if (toolCalls && toolCalls.length > 0) {
+            toolCalls.forEach((fc: any) => {
+               if (fc.name === 'update_business_context') {
+                  onUpdate(fc.args);
+               }
+            });
+         }
+
+         // Update history with the completed turn (User input + AI response)
+         // Ensure we provide a fallback for text if it's empty (e.g. tool call only)
+         const aiResponseText = text || "(Action taken)";
+         
+         setHistory(prev => [
+            ...prev,
+            { role: "user", parts: [{ text: userMsg }] },
+            { role: "model", parts: [{ text: aiResponseText }] } 
+         ]);
+
+         if (text) {
+            setMessages(prev => [...prev, { id: Math.random().toString(), sender: 'ai', text }]);
+         } else if (toolCalls && toolCalls.length > 0) {
+            setMessages(prev => [...prev, { id: Math.random().toString(), sender: 'ai', text: "I've updated your business profile." }]);
+         }
+
+      } catch (err) {
+         console.error(err);
+         setMessages(prev => [...prev, { id: Math.random().toString(), sender: 'ai', text: "Connection error. Please try again." }]);
+      } finally {
+         setIsThinking(false);
+      }
+   };
+
+   return (
+      <GlassPane className="w-full max-w-2xl h-[400px] flex flex-col bg-white border border-slate-200 shadow-xl mb-8">
+         <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar" ref={scrollRef}>
+            {messages.map(msg => (
+               <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`flex gap-3 max-w-[80%] ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}>
+                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.sender === 'user' ? 'bg-tech-purple text-white' : 'bg-slate-100 text-slate-500'}`}>
+                        {msg.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                     </div>
+                     <div className={`p-3 rounded-2xl text-sm ${msg.sender === 'user' ? 'bg-tech-purple text-white rounded-tr-none' : 'bg-slate-50 border border-slate-100 text-ink-900 rounded-tl-none'}`}>
+                        {msg.text}
+                     </div>
+                  </div>
+               </div>
+            ))}
+            {isThinking && (
+               <div className="flex justify-start">
+                  <div className="flex gap-3 max-w-[80%]">
+                     <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                        <Bot className="w-4 h-4" />
+                     </div>
+                     <div className="p-3 rounded-2xl rounded-tl-none bg-slate-50 border border-slate-100 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-100" />
+                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-200" />
+                     </div>
+                  </div>
+               </div>
+            )}
+         </div>
+         <form onSubmit={handleSend} className="p-4 border-t border-slate-100 flex gap-2">
+            <input 
+               value={input}
+               onChange={e => setInput(e.target.value)}
+               placeholder="Type your answer..."
+               className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-ink-900 focus:outline-none focus:border-tech-purple focus:ring-1 focus:ring-tech-purple/20 transition-all"
+               autoFocus
+            />
+            <button type="submit" disabled={!input.trim() || isThinking} className="p-2 bg-tech-purple hover:bg-indigo-600 text-white rounded-lg disabled:opacity-50 transition-colors">
+               <Send className="w-4 h-4" />
+            </button>
+         </form>
+      </GlassPane>
+   );
 };
 
 const ExtractionCard: React.FC<{ label: string, value?: string }> = ({ label, value }) => (
@@ -244,7 +379,7 @@ const LocationVerifier: React.FC<{ initialLocation: string, onConfirm: (l: strin
           
           <button 
              onClick={() => onConfirm("Global")}
-             className="mt-6 text-xs text-ink-400 hover:text-ink-950 uppercase tracking-widest font-bold transition-colors"
+             className="mt-6 text-xs text-ink-400 hover:text-ink-900 uppercase tracking-widest font-bold transition-colors"
           >
              Skip (Digital / Global Operations)
           </button>
@@ -252,4 +387,3 @@ const LocationVerifier: React.FC<{ initialLocation: string, onConfirm: (l: strin
     </motion.div>
   );
 };
-    

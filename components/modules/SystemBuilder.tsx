@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIEmployee } from '../../types';
-import { Sparkles, Zap, Brain, CheckCircle2 } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 interface SystemBuilderProps {
   team: AIEmployee[];
@@ -25,25 +25,25 @@ export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
   }, [team]);
 
   return (
-    <div className="relative w-full max-w-5xl h-[600px] flex items-center justify-center overflow-hidden rounded-[3rem] bg-white/60 border border-white/60 backdrop-blur-xl shadow-soft">
+    <div className="relative w-full max-w-5xl h-[600px] flex items-center justify-center overflow-hidden rounded-[3rem] bg-white border border-slate-200 shadow-glass">
       
-      {/* 1. Organic Background (Calm blobs) */}
-      <div className="absolute inset-0 z-0 opacity-40">
+      {/* 1. Organic Background (Executive Blobs) */}
+      <div className="absolute inset-0 z-0 opacity-30">
          <motion.div 
            animate={{ scale: [1, 1.1, 1], rotate: [0, 10, 0] }}
            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-           className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-soft-primary/20 rounded-full blur-[80px]" 
+           className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-tech-purple/20 rounded-full blur-[80px]" 
          />
          <motion.div 
            animate={{ scale: [1, 1.2, 1], rotate: [0, -15, 0] }}
            transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-           className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-soft-accent/20 rounded-full blur-[80px]" 
+           className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-tech-cyan/20 rounded-full blur-[80px]" 
          />
       </div>
 
       <div className="flex flex-col items-center w-full z-10 p-8">
         
-        {/* Status Text (Warm Tone) */}
+        {/* Status Text */}
         <div className="mb-12 text-center h-20 flex flex-col items-center justify-center">
            <AnimatePresence mode="wait">
              {visibleAgents.length < team.length && team.length > 0 ? (
@@ -55,11 +55,11 @@ export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
                   className="flex flex-col items-center gap-3"
                 >
                    <div className="flex gap-2">
-                      <span className="w-2 h-2 rounded-full bg-soft-primary animate-bounce" />
-                      <span className="w-2 h-2 rounded-full bg-soft-primary animate-bounce delay-100" />
-                      <span className="w-2 h-2 rounded-full bg-soft-primary animate-bounce delay-200" />
+                      <span className="w-2 h-2 rounded-full bg-tech-purple animate-bounce" />
+                      <span className="w-2 h-2 rounded-full bg-tech-purple animate-bounce delay-100" />
+                      <span className="w-2 h-2 rounded-full bg-tech-purple animate-bounce delay-200" />
                    </div>
-                   <div className="text-ink-500 font-medium text-xl">Connecting you with specialized partners...</div>
+                   <div className="text-ink-600 font-medium text-xl">Recruiting AI Specialists...</div>
                 </motion.div>
              ) : team.length > 0 ? (
                 <motion.div 
@@ -68,11 +68,11 @@ export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
                   animate={{ opacity: 1, scale: 1 }}
                   className="flex flex-col items-center gap-2"
                 >
-                   <div className="text-soft-success font-bold text-sm uppercase tracking-widest bg-soft-success/10 px-3 py-1 rounded-full">Ready</div>
-                   <div className="text-ink-900 text-3xl font-bold">Your Workspace is Prepared</div>
+                   <div className="text-emerald-600 font-bold text-xs uppercase tracking-widest bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">System Ready</div>
+                   <div className="text-ink-950 text-3xl font-bold font-display">Workforce Assembled</div>
                 </motion.div>
              ) : (
-                <motion.div className="text-ink-400 font-medium text-lg">Understanding your needs...</motion.div>
+                <motion.div className="text-ink-400 font-medium text-lg">Analyzing organizational needs...</motion.div>
              )}
            </AnimatePresence>
         </div>
@@ -81,12 +81,12 @@ export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
         <div className="flex flex-wrap justify-center gap-8 w-full max-w-4xl">
           <AnimatePresence>
             {team.length === 0 ? (
-               // SKELETON (Soft Pulse)
+               // SKELETON LOADING
                [1,2,3].map(i => (
                   <motion.div 
                     key={`skel-${i}`} 
                     exit={{ opacity: 0, scale: 0.8 }} 
-                    className="w-32 h-32 rounded-full bg-white border border-white/50 shadow-sm animate-pulse"
+                    className="w-32 h-32 rounded-full bg-slate-50 border border-slate-100 shadow-sm animate-pulse"
                   />
                ))
             ) : (
@@ -100,19 +100,18 @@ export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
                    className="relative group"
                  >
                    {/* Agent Card */}
-                   <div className="w-48 p-6 bg-white/80 border border-white/60 rounded-3xl backdrop-blur-md flex flex-col items-center text-center shadow-soft hover:shadow-lg hover:-translate-y-1 transition-all duration-500">
+                   <div className="w-48 p-6 bg-white border border-slate-200 rounded-3xl flex flex-col items-center text-center shadow-glass hover:shadow-xl hover:border-tech-purple/30 hover:-translate-y-1 transition-all duration-500">
                       
                       {/* Avatar */}
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-soft-primary/20 to-soft-accent/20 mb-4 flex items-center justify-center text-ink-900 font-bold text-2xl relative overflow-hidden">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 mb-4 flex items-center justify-center text-tech-purple font-bold text-2xl relative overflow-hidden group-hover:scale-110 transition-transform">
                          {agent.name[0]}
-                         <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                       
                       <div className="text-ink-900 font-bold text-sm mb-1">{agent.role}</div>
                       <div className="text-ink-500 text-xs mb-3">{agent.name}</div>
                       
-                      <div className="w-full pt-3 border-t border-ink-100 flex items-center justify-center gap-1.5 text-[10px] text-ink-400 font-medium uppercase tracking-wide">
-                         <Sparkles className="w-3 h-3 text-soft-accent" />
+                      <div className="w-full pt-3 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[10px] text-tech-purple font-bold uppercase tracking-wide">
+                         <Sparkles className="w-3 h-3 fill-current" />
                          Active
                       </div>
                    </div>

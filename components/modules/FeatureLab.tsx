@@ -24,7 +24,6 @@ export const FeatureLab: React.FC = () => {
     setResearchingFeatures(true);
     try {
       const proposals = await researchStrategicFeatures(context);
-      // Ensure unique IDs
       const proposalsWithIds = proposals.map((p, i) => ({ ...p, id: Math.random().toString() }));
       setFeatureProposals(proposalsWithIds);
       if (proposalsWithIds.length > 0) setSelectedProposalId(proposalsWithIds[0].id);
@@ -35,7 +34,6 @@ export const FeatureLab: React.FC = () => {
     }
   };
 
-  // Auto-trigger if empty
   useEffect(() => {
     if (featureProposals.length === 0 && !isResearchingFeatures && context) {
       handleDeepScan();
@@ -64,18 +62,18 @@ export const FeatureLab: React.FC = () => {
   if (!activeProposal) {
      return (
         <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-           <div className="w-24 h-24 rounded-full bg-tech-purple/10 flex items-center justify-center mb-6 shadow-glow relative">
+           <div className="w-24 h-24 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-6 shadow-sm relative">
              <FlaskConical className="w-12 h-12 text-tech-purple" />
-             <div className="absolute inset-0 border border-tech-purple/30 rounded-full animate-pulse opacity-50" />
+             <div className="absolute inset-0 border border-indigo-200 rounded-full animate-pulse opacity-50" />
            </div>
-           <h2 className="text-3xl font-light text-white mb-4">Innovation Lab</h2>
-           <p className="text-white/40 max-w-md mb-8 leading-relaxed">
+           <h2 className="text-3xl font-bold text-ink-900 mb-4 tracking-tight">Innovation Lab</h2>
+           <p className="text-ink-500 max-w-md mb-8 leading-relaxed font-medium">
              Initiate a rigorous R&D protocol to uncover high-impact features. 
              We use the RICE framework (Reach, Impact, Confidence, Effort) to score every idea.
            </p>
            <button 
              onClick={handleDeepScan}
-             className="px-8 py-4 bg-tech-purple hover:bg-purple-500 text-white rounded-xl font-medium tracking-wide flex items-center gap-3 transition-all hover:scale-105 shadow-xl"
+             className="px-8 py-4 bg-tech-purple hover:bg-indigo-600 text-white rounded-xl font-bold tracking-wide flex items-center gap-3 transition-all hover:scale-105 shadow-xl shadow-indigo-500/20"
            >
              <Sparkles className="w-5 h-5" />
              Begin Feature Discovery
@@ -88,10 +86,12 @@ export const FeatureLab: React.FC = () => {
     <div className="h-[calc(100vh-6rem)] overflow-hidden flex gap-6 p-6">
        
        {/* LEFT: PROPOSAL LIST */}
-       <GlassPane className="w-96 flex flex-col p-6 bg-nebula-900/40">
-          <div className="flex items-center gap-2 mb-6 text-tech-purple">
-             <FlaskConical className="w-5 h-5" />
-             <h2 className="font-light tracking-wide text-white">R&D Pipeline</h2>
+       <GlassPane className="w-96 flex flex-col p-6 bg-slate-50 border-slate-200">
+          <div className="flex items-center gap-2 mb-6">
+             <div className="p-2 bg-indigo-100 rounded-lg">
+                <FlaskConical className="w-5 h-5 text-tech-purple" />
+             </div>
+             <h2 className="font-bold tracking-wide text-ink-900">R&D Pipeline</h2>
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3">
@@ -101,31 +101,31 @@ export const FeatureLab: React.FC = () => {
                   onClick={() => setSelectedProposalId(proposal.id)}
                   className={`w-full text-left p-4 rounded-xl border transition-all relative group overflow-hidden ${
                     activeProposal.id === proposal.id 
-                    ? 'bg-white/10 border-tech-purple/50 text-white' 
-                    : 'bg-white/5 border-white/5 text-white/50 hover:bg-white/10'
+                    ? 'bg-white border-tech-purple shadow-md' 
+                    : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                   }`}
                 >
                    {activeProposal.id === proposal.id && (
                       <div className="absolute left-0 top-0 bottom-0 w-1 bg-tech-purple" />
                    )}
                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-medium truncate pr-2">{proposal.title}</span>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                         proposal.riceScore >= 80 ? 'bg-emerald-500/20 text-emerald-300' :
-                         proposal.riceScore >= 60 ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/40'
+                      <span className={`font-bold truncate pr-2 ${activeProposal.id === proposal.id ? 'text-ink-900' : 'text-ink-600'}`}>{proposal.title}</span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                         proposal.riceScore >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                         proposal.riceScore >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
                       }`}>
                          RICE: {proposal.riceScore}
                       </span>
                    </div>
-                   <div className="text-xs opacity-60 truncate">{proposal.tagline}</div>
+                   <div className="text-xs text-ink-400 truncate font-medium">{proposal.tagline}</div>
                 </button>
              ))}
           </div>
 
-          <div className="pt-4 mt-4 border-t border-white/5">
+          <div className="pt-4 mt-4 border-t border-slate-200">
              <button 
                onClick={handleDeepScan}
-               className="w-full py-3 rounded-xl border border-white/10 hover:bg-white/5 text-xs text-white/50 hover:text-white transition-colors flex items-center justify-center gap-2"
+               className="w-full py-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs text-ink-500 hover:text-ink-900 transition-colors flex items-center justify-center gap-2 font-bold"
              >
                 <RefreshCw className="w-3 h-3" /> Re-Scan Market
              </button>
@@ -134,56 +134,56 @@ export const FeatureLab: React.FC = () => {
 
        {/* RIGHT: DEEP DIVE */}
        <div className="flex-1 flex flex-col overflow-hidden">
-          <GlassPane className="h-full p-0 relative overflow-hidden flex flex-col">
+          <GlassPane className="h-full p-0 relative overflow-hidden flex flex-col bg-white shadow-crisp">
              {/* Header */}
-             <div className="p-8 pb-0 shrink-0">
+             <div className="p-8 pb-0 shrink-0 bg-slate-50/50">
                 <div className="flex justify-between items-start mb-4">
                    <div>
-                      <h1 className="text-3xl font-light text-white mb-2">{activeProposal.title}</h1>
-                      <p className="text-xl text-tech-cyan/80 font-light">{activeProposal.tagline}</p>
+                      <h1 className="text-3xl font-bold text-ink-900 mb-2 tracking-tight">{activeProposal.title}</h1>
+                      <p className="text-xl text-ink-500 font-light">{activeProposal.tagline}</p>
                    </div>
                    <div className="flex flex-col items-end">
-                      <div className="text-5xl font-mono font-bold text-white tracking-tighter text-glow">
+                      <div className="text-5xl font-mono font-bold text-ink-900 tracking-tighter">
                          {activeProposal.riceScore}
                       </div>
-                      <div className="text-[10px] text-white/30 uppercase font-mono tracking-widest mt-1">RICE Score</div>
+                      <div className="text-[10px] text-ink-400 uppercase font-mono tracking-widest mt-1 font-bold">RICE Score</div>
                    </div>
                 </div>
 
                 {/* Score Breakdown Bar */}
-                <div className="flex gap-1 h-1 w-full bg-white/5 rounded-full overflow-hidden mb-8">
-                   <div className="flex-1 bg-emerald-500/50" />
-                   <div className="flex-1 bg-blue-500/50" />
-                   <div className="flex-1 bg-purple-500/50" />
-                   <div className="flex-1 bg-rose-500/50" />
+                <div className="flex gap-1 h-1 w-full bg-slate-100 rounded-full overflow-hidden mb-8">
+                   <div className="flex-1 bg-emerald-500" />
+                   <div className="flex-1 bg-blue-500" />
+                   <div className="flex-1 bg-purple-500" />
+                   <div className="flex-1 bg-rose-500" />
                 </div>
              </div>
 
              {/* Scrollable Content */}
              <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-0">
-                <div className="grid grid-cols-3 gap-6 mb-8">
-                   <StatCard label="Feasibility" value={activeProposal.feasibility} icon={<Activity className="w-4 h-4 text-emerald-400" />} />
-                   <StatCard label="Market Context" value={activeProposal.competitorAdoption} icon={<Layers className="w-4 h-4 text-blue-400" />} />
-                   <StatCard label="Expected ROI" value={activeProposal.expectedROI} icon={<BarChart3 className="w-4 h-4 text-purple-400" />} />
+                <div className="grid grid-cols-3 gap-6 mb-8 mt-8">
+                   <StatCard label="Feasibility" value={activeProposal.feasibility} icon={<Activity className="w-4 h-4 text-emerald-500" />} />
+                   <StatCard label="Market Context" value={activeProposal.competitorAdoption} icon={<Layers className="w-4 h-4 text-blue-500" />} />
+                   <StatCard label="Expected ROI" value={activeProposal.expectedROI} icon={<BarChart3 className="w-4 h-4 text-purple-500" />} />
                 </div>
 
                 <div className="space-y-8">
                    <section>
-                      <h3 className="text-sm font-bold text-white/40 uppercase tracking-widest mb-4">Strategic Rationale</h3>
-                      <p className="text-white/80 leading-relaxed text-lg font-light">
+                      <h3 className="text-sm font-bold text-ink-400 uppercase tracking-widest mb-4">Strategic Rationale</h3>
+                      <p className="text-ink-800 leading-relaxed text-lg font-medium">
                          {activeProposal.description}
                       </p>
                    </section>
 
                    <section>
-                      <h3 className="text-sm font-bold text-white/40 uppercase tracking-widest mb-4">Implementation Protocol</h3>
+                      <h3 className="text-sm font-bold text-ink-400 uppercase tracking-widest mb-4">Implementation Protocol</h3>
                       <div className="space-y-3">
                          {activeProposal.implementationSteps.map((step, i) => (
-                            <div key={i} className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/5">
-                               <div className="w-6 h-6 rounded-full bg-tech-purple/20 flex items-center justify-center text-tech-purple text-xs font-bold shrink-0">
+                            <div key={i} className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                               <div className="w-6 h-6 rounded-full bg-tech-purple text-white flex items-center justify-center text-xs font-bold shrink-0">
                                   {i + 1}
                                </div>
-                               <div className="text-white/80">{step}</div>
+                               <div className="text-ink-700 font-medium">{step}</div>
                             </div>
                          ))}
                       </div>
@@ -192,11 +192,11 @@ export const FeatureLab: React.FC = () => {
              </div>
 
              {/* Footer Actions */}
-             <div className="p-6 border-t border-white/5 bg-nebula-950/30 flex justify-end gap-4 shrink-0">
-                <button className="px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 text-white/60 hover:text-white transition-colors">
+             <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-4 shrink-0">
+                <button className="px-6 py-3 rounded-xl border border-slate-200 hover:bg-white text-ink-500 hover:text-ink-900 transition-colors font-bold text-sm bg-white shadow-sm">
                    Save for Later
                 </button>
-                <button className="px-8 py-3 bg-tech-purple hover:bg-purple-500 text-white rounded-xl font-medium flex items-center gap-2 shadow-glow">
+                <button className="px-8 py-3 bg-tech-purple hover:bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-500/20 text-sm">
                    <Rocket className="w-4 h-4" /> Launch Project
                 </button>
              </div>
@@ -208,11 +208,11 @@ export const FeatureLab: React.FC = () => {
 };
 
 const StatCard: React.FC<{ label: string, value: string, icon: React.ReactNode }> = ({ label, value, icon }) => (
-   <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-      <div className="flex items-center gap-2 mb-2 opacity-50">
+   <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+      <div className="flex items-center gap-2 mb-2 opacity-70">
          {icon}
-         <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
+         <span className="text-[10px] font-mono uppercase tracking-widest font-bold text-ink-500">{label}</span>
       </div>
-      <div className="text-lg font-medium text-white">{value}</div>
+      <div className="text-lg font-bold text-ink-900">{value}</div>
    </div>
 );
