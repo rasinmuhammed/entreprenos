@@ -17,11 +17,11 @@ interface GlassPaneProps {
 
 export const GlassPane: React.FC<GlassPaneProps> = ({ children, className, onClick, hoverEffect = false }) => {
   
-  // "Digital Clay" Aesthetic
-  // Soft white/translucent background, diffused shadow, rounded corners
-  const baseStyles = "bg-white/80 backdrop-blur-xl border border-white/60 shadow-soft text-ink-900 rounded-3xl";
+  // "Executive SaaS" Aesthetic
+  // Crisp White, Thin Slate Border, Subtle Shadow
+  const baseStyles = "bg-white border border-slate-200 shadow-glass rounded-2xl";
 
-  const hoverStyles = "hover:-translate-y-1 hover:shadow-lg transition-all duration-500 ease-out";
+  const hoverStyles = "hover:border-tech-purple/30 hover:shadow-glass-hover transition-all duration-300 ease-out";
 
   return (
     <motion.div
@@ -31,7 +31,6 @@ export const GlassPane: React.FC<GlassPaneProps> = ({ children, className, onCli
       className={cn(
         "relative overflow-hidden group",
         baseStyles,
-        "after:absolute after:inset-0 after:rounded-3xl after:pointer-events-none after:shadow-inner-white", // Top-light highlight
         hoverEffect && `cursor-pointer ${hoverStyles}`,
         className
       )}
@@ -42,3 +41,4 @@ export const GlassPane: React.FC<GlassPaneProps> = ({ children, className, onCli
     </motion.div>
   );
 };
+    

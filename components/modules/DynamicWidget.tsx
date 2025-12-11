@@ -519,3 +519,4 @@ export const DynamicWidget: React.FC<{ widget: WidgetData }> = ({ widget }) => {
     </div>
   );
 };
+    

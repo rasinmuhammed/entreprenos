@@ -7,76 +7,73 @@
     <title>EntreprenOS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Quicksand:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Nunito', 'sans-serif'], // Soft, rounded sans
-              mono: ['Quicksand', 'sans-serif'], // Friendly mono
+              sans: ['Inter', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'sans-serif'],
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace'],
             },
             colors: {
-              paper: {
-                50: '#FDFCF8', // Cream background (Sanctuary)
-                100: '#F5F5F0',
-                200: '#E6E6E0',
+              // The "Executive" Palette (Zinc Scale)
+              nebula: {
+                950: '#F8FAFC', // Main Bg: Very Cool Grey (Crisp)
+                900: '#F1F5F9', // Secondary Bg: Slate-100
+                800: '#E2E8F0', // Borders
+                500: '#64748B',
               },
               ink: {
-                950: '#1F2937', // Deep Grey (Soft Black)
-                900: '#334155', // Slate 700
-                500: '#64748B', // Slate 500
-                400: '#94A3B8', // Slate 400
-                300: '#CBD5E1', // Slate 300
-                100: '#F1F5F9',
-                50: '#F8FAFC',
-              },
-              soft: {
-                primary: '#818CF8', // Soft Indigo (Trust)
-                accent: '#F472B6', // Soft Pink (Creativity)
-                success: '#34D399', // Soft Mint (Growth)
-                warning: '#FCD34D', // Soft Yellow (Alert)
-                rose: '#FDA4AF', // Soft Rose (Error)
-                sky: '#7DD3FC', // Soft Sky (Clarity)
-              },
-              // Mapping legacy tokens to new palette for compatibility
-              nebula: {
-                950: '#FDFCF8', // Map to paper-50
-                900: '#FFFFFF', // Map to white
-                800: '#F5F5F0',
+                950: '#020617', // Primary Text (Deepest Navy/Black)
+                900: '#0F172A',
+                600: '#475569', // Secondary Text (Slate)
+                500: '#64748B',
+                400: '#94A3B8', // Muted Text
+                300: '#CBD5E1',
               },
               tech: {
-                cyan: '#818CF8', // Map to Soft Indigo
-                purple: '#F472B6', // Map to Soft Pink
-                emerald: '#34D399',
-                rose: '#FDA4AF',
-                amber: '#FCD34D',
+                // Primary Brand Color: "Electric Violet" (Premium & Digital)
+                purple: '#6366F1', 
+                purple_dim: 'rgba(99, 102, 241, 0.1)',
+                
+                // Functional Colors
+                cyan: '#06B6D4',   // Info/AI
+                emerald: '#10B981', // Success
+                rose: '#F43F5E',    // Error/Alert
+                amber: '#F59E0B',   // Warning
               },
-              glass: {
-                surface: 'rgba(255, 255, 255, 0.7)',
-                border: 'rgba(255, 255, 255, 0.5)',
-                highlight: 'rgba(255, 255, 255, 0.8)',
-              }
+              // Legacy map for compatibility
+              paper: { 50: '#F8FAFC' }, 
+              soft: { primary: '#6366F1' }
             },
             boxShadow: {
-              'soft': '0 10px 40px -10px rgba(0,0,0,0.05)', // Diffused, calming shadow
-              'glow': '0 0 20px -5px rgba(129, 140, 248, 0.3)', // Soft indigo glow
-              'inner-white': 'inset 0 2px 0 rgba(255,255,255,0.8)', // Top highlight
-              'paper': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
+              'glass': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', // Subtle depth
+              'glass-hover': '0 10px 40px rgba(99, 102, 241, 0.08)', // Colored lift
+              'crisp': '0 1px 2px 0 rgba(0, 0, 0, 0.05)', // Tiny border shadow
+              'glow': '0 0 20px -5px rgba(99, 102, 241, 0.3)',
+            },
+            backgroundImage: {
+              'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+              'prism-border': 'linear-gradient(45deg, #06B6D4, #6366F1, #F43F5E)', 
             },
             animation: {
-              'float': 'float 6s ease-in-out infinite',
-              'breathe': 'breathe 4s ease-in-out infinite',
+              'border-flow': 'border-flow 4s ease infinite',
+              'blob': 'blob 7s infinite',
             },
             keyframes: {
-              float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-10px)' },
+              'border-flow': {
+                '0%, 100%': { backgroundPosition: '0% 50%' },
+                '50%': { backgroundPosition: '100% 50%' },
               },
-              breathe: {
-                '0%, 100%': { transform: 'scale(1)' },
-                '50%': { transform: 'scale(1.02)' },
+              blob: {
+                "0%": { transform: "translate(0px, 0px) scale(1)" },
+                "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+                "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+                "100%": { transform: "translate(0px, 0px) scale(1)" }
               }
             }
           }
@@ -85,13 +82,12 @@
     </script>
     <style>
       body {
-        background-color: #FDFCF8;
-        color: #334155;
-        overflow-x: hidden;
+        background-color: #F8FAFC;
+        color: #0F172A;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
-      /* Soft Scrollbar */
+      /* Executive Scrollbar */
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -100,11 +96,18 @@
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.1);
+        background: #CBD5E1;
         border-radius: 3px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: rgba(0, 0, 0, 0.2);
+        background: #94A3B8;
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
       }
     </style>
   <script type="importmap">
@@ -127,3 +130,4 @@
     <div id="root"></div>
   </body>
 </html>
+    

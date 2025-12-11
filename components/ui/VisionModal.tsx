@@ -99,35 +99,35 @@ export const VisionModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-nebula-950/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         className="w-full max-w-2xl"
       >
-        <GlassPane className="relative p-8 overflow-hidden">
+        <GlassPane className="relative p-8 overflow-hidden bg-white shadow-2xl">
            <button 
              onClick={() => setVisionModalOpen(false)}
-             className="absolute top-4 right-4 p-2 text-white/30 hover:text-white rounded-full hover:bg-white/10 transition-colors z-20"
+             className="absolute top-4 right-4 p-2 text-ink-400 hover:text-ink-900 rounded-full hover:bg-slate-50 transition-colors z-20"
            >
              <X className="w-5 h-5" />
            </button>
 
            <div className="flex items-center gap-3 mb-8">
-             <div className="p-3 bg-tech-purple/20 rounded-xl">
+             <div className="p-3 bg-indigo-50 rounded-xl">
                <Eye className="w-6 h-6 text-tech-purple" />
              </div>
              <div>
-               <h2 className="text-2xl font-light text-white">Omniscient Vision</h2>
-               <p className="text-white/40 text-sm">Upload visual intelligence (Competitor Pricing, Sketches, Shelf Photos)</p>
+               <h2 className="text-2xl font-bold font-display text-ink-950">Omniscient Vision</h2>
+               <p className="text-ink-500 text-sm">Upload visual intelligence (Competitor Pricing, Sketches, Shelf Photos)</p>
              </div>
            </div>
 
            {!analysisResult && !isAnalyzing && (
              <div 
                className={`h-64 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer active:scale-95 touch-manipulation ${
-                 dragActive ? 'border-tech-purple bg-tech-purple/10' : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+                 dragActive ? 'border-tech-purple bg-indigo-50' : 'border-slate-200 hover:border-slate-400 hover:bg-slate-50'
                }`}
                onDragEnter={handleDrag}
                onDragLeave={handleDrag}
@@ -136,54 +136,54 @@ export const VisionModal: React.FC = () => {
                onClick={() => inputRef.current?.click()}
              >
                <input ref={inputRef} type="file" className="hidden" accept="image/*" capture="environment" onChange={handleChange} />
-               <Upload className="w-10 h-10 text-white/20 mb-4" />
-               <p className="text-white/60 font-medium text-lg flex flex-col items-center gap-2">
+               <Upload className={`w-10 h-10 mb-4 ${dragActive ? 'text-tech-purple' : 'text-slate-300'}`} />
+               <p className="text-ink-900 font-bold text-lg flex flex-col items-center gap-2">
                   <span className="hidden md:inline">Drag & Drop or Click to Upload</span>
-                  <span className="md:hidden font-bold text-tech-purple">Tap to Take Photo</span>
+                  <span className="md:hidden text-tech-purple">Tap to Take Photo</span>
                </p>
-               <p className="text-white/30 text-xs mt-2">Supports JPG, PNG, WEBP</p>
+               <p className="text-ink-400 text-xs mt-2">Supports JPG, PNG, WEBP</p>
              </div>
            )}
 
            {isAnalyzing && (
-             <div className="h-64 flex flex-col items-center justify-center relative overflow-hidden rounded-xl bg-black/20">
-               <div className="absolute inset-0 bg-grid-pattern opacity-20 animate-pulse" />
-               <div className="absolute top-0 w-full h-1 bg-tech-purple shadow-[0_0_20px_#8b5cf6] animate-scanline" />
+             <div className="h-64 flex flex-col items-center justify-center relative overflow-hidden rounded-xl bg-slate-50 border border-slate-100">
+               <div className="absolute inset-0 bg-grid-pattern opacity-10 animate-pulse" />
+               <div className="absolute top-0 w-full h-1 bg-tech-purple shadow-glow animate-scanline" />
                
                <Loader2 className="w-10 h-10 text-tech-purple animate-spin mb-4 relative z-10" />
-               <div className="font-mono text-tech-purple text-sm relative z-10">ANALYZING PIXEL DATA...</div>
+               <div className="font-mono text-ink-900 font-bold text-sm relative z-10">ANALYZING PIXEL DATA...</div>
              </div>
            )}
 
            {analysisResult && (
-             <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+             <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
                <div className="flex items-center gap-2 mb-4">
                  {analysisResult.detectedType === "SUCCESS" ? (
-                    <CheckCircle2 className="w-6 h-6 text-emerald-400 animate-bounce" />
+                    <CheckCircle2 className="w-6 h-6 text-emerald-500 animate-bounce" />
                  ) : (
-                    <ScanLine className="w-5 h-5 text-tech-emerald" />
+                    <ScanLine className="w-5 h-5 text-tech-purple" />
                  )}
-                 <span className={`font-mono uppercase tracking-wider text-sm ${analysisResult.detectedType === "SUCCESS" ? "text-emerald-400 font-bold" : "text-tech-emerald"}`}>
+                 <span className={`font-mono uppercase tracking-wider text-sm font-bold ${analysisResult.detectedType === "SUCCESS" ? "text-emerald-600" : "text-tech-purple"}`}>
                     {analysisResult.detectedType === "SUCCESS" ? "Construction Initiated" : "Analysis Complete"}
                  </span>
                </div>
                
                {analysisResult.detectedType !== "SUCCESS" && (
                  <div className="mb-4">
-                   <div className="text-[10px] text-white/30 uppercase font-mono mb-1">Detected Type</div>
-                   <div className="text-white font-medium">{analysisResult.detectedType}</div>
+                   <div className="text-[10px] text-ink-400 uppercase font-mono mb-1 font-bold">Detected Type</div>
+                   <div className="text-ink-900 font-medium">{analysisResult.detectedType}</div>
                  </div>
                )}
 
                <div className="mb-6">
-                 <div className="text-[10px] text-white/30 uppercase font-mono mb-1">Summary</div>
-                 <p className="text-sm text-white/70 leading-relaxed">{analysisResult.summary}</p>
+                 <div className="text-[10px] text-ink-400 uppercase font-mono mb-1 font-bold">Summary</div>
+                 <p className="text-sm text-ink-600 leading-relaxed">{analysisResult.summary}</p>
                </div>
 
                {analysisResult.detectedType !== "SUCCESS" && (
-                 <div className="p-4 bg-tech-emerald/10 border border-tech-emerald/20 rounded-lg flex items-center justify-between">
-                   <span className="text-xs text-emerald-200">Data extracted and synced to OS.</span>
-                   <button onClick={() => setVisionModalOpen(false)} className="text-xs font-medium text-emerald-400 hover:text-white transition-colors">
+                 <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-between">
+                   <span className="text-xs text-indigo-700 font-medium">Data extracted and synced to OS.</span>
+                   <button onClick={() => setVisionModalOpen(false)} className="text-xs font-bold text-tech-purple hover:text-indigo-800 transition-colors">
                      Close & View
                    </button>
                  </div>
@@ -196,3 +196,4 @@ export const VisionModal: React.FC = () => {
     </div>
   );
 };
+    
