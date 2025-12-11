@@ -7,87 +7,76 @@
     <title>EntreprenOS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Quicksand:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              mono: ['JetBrains Mono', 'monospace'],
+              sans: ['Nunito', 'sans-serif'], // Soft, rounded sans
+              mono: ['Quicksand', 'sans-serif'], // Friendly mono
             },
             colors: {
-              nebula: {
-                950: '#03050C', // Deep Void (Focus/ADHD friendly)
-                900: '#0B0F1E', // Panel BG
-                800: '#161B33',
-                700: '#232D50',
-                100: '#E0E7FF',
-                50: '#EEF2FF',
+              paper: {
+                50: '#FDFCF8', // Cream background (Sanctuary)
+                100: '#F5F5F0',
+                200: '#E6E6E0',
               },
-              earth: {
-                950: '#1c1917', // Soft Black (Calm Text)
-                900: '#292524',
-                800: '#44403c',
-                100: '#f5f5f4',
-                50: '#fafaf9',  // Warm White (Paper-like, reduces anxiety)
-                accent: '#d97706', // Amber (Value/Gold)
-                secondary: '#b45309',
-                success: '#059669', // Emerald (Growth)
+              ink: {
+                950: '#1F2937', // Deep Grey (Soft Black)
+                900: '#334155', // Slate 700
+                500: '#64748B', // Slate 500
+                400: '#94A3B8', // Slate 400
+                300: '#CBD5E1', // Slate 300
+                100: '#F1F5F9',
+                50: '#F8FAFC',
+              },
+              soft: {
+                primary: '#818CF8', // Soft Indigo (Trust)
+                accent: '#F472B6', // Soft Pink (Creativity)
+                success: '#34D399', // Soft Mint (Growth)
+                warning: '#FCD34D', // Soft Yellow (Alert)
+                rose: '#FDA4AF', // Soft Rose (Error)
+                sky: '#7DD3FC', // Soft Sky (Clarity)
+              },
+              // Mapping legacy tokens to new palette for compatibility
+              nebula: {
+                950: '#FDFCF8', // Map to paper-50
+                900: '#FFFFFF', // Map to white
+                800: '#F5F5F0',
               },
               tech: {
-                cyan: '#22d3ee', // Cyan-400 (Primary Action)
-                purple: '#a855f7', // Purple-500 (AI Magic)
-                emerald: '#10b981',
-                rose: '#f43f5e', // Rose-500 (Critical Only)
-                amber: '#f59e0b',
+                cyan: '#818CF8', // Map to Soft Indigo
+                purple: '#F472B6', // Map to Soft Pink
+                emerald: '#34D399',
+                rose: '#FDA4AF',
+                amber: '#FCD34D',
               },
               glass: {
-                surface: 'rgba(11, 15, 30, 0.6)', // Subtle, non-distracting
-                border: 'rgba(255, 255, 255, 0.08)',
-                highlight: 'rgba(255, 255, 255, 0.12)',
+                surface: 'rgba(255, 255, 255, 0.7)',
+                border: 'rgba(255, 255, 255, 0.5)',
+                highlight: 'rgba(255, 255, 255, 0.8)',
               }
             },
-            backgroundImage: {
-              'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-              'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-              'grid-pattern': "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm1 1h38v38H1V1z' fill='%23ffffff' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E\")",
-            },
-            backdropBlur: {
-              'xs': '2px',
-              'md': '12px',
-              'xl': '24px',
-            },
             boxShadow: {
-              'glow': '0 0 20px -5px rgba(168, 85, 247, 0.2)', // Purple glow default
-              'glow-cyan': '0 0 20px -5px rgba(34, 211, 238, 0.25)',
-              'glow-strong': '0 0 40px -10px rgba(168, 85, 247, 0.4)',
-              'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
-              'paper': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-            },
-            spacing: {
-              'phi-1': '1.618rem',   // Golden Ratio scale
+              'soft': '0 10px 40px -10px rgba(0,0,0,0.05)', // Diffused, calming shadow
+              'glow': '0 0 20px -5px rgba(129, 140, 248, 0.3)', // Soft indigo glow
+              'inner-white': 'inset 0 2px 0 rgba(255,255,255,0.8)', // Top highlight
+              'paper': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
             },
             animation: {
-              'blob': 'blob 10s infinite',
-              'shimmer': 'shimmer 2s linear infinite',
-              'scanline': 'scanline 8s linear infinite',
+              'float': 'float 6s ease-in-out infinite',
+              'breathe': 'breathe 4s ease-in-out infinite',
             },
             keyframes: {
-              blob: {
-                '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                '100%': { transform: 'translate(0px, 0px) scale(1)' },
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' },
               },
-              shimmer: {
-                '0%': { backgroundPosition: '-1000px 0' },
-                '100%': { backgroundPosition: '1000px 0' },
-              },
-              scanline: {
-                '0%': { transform: 'translateY(-100%)' },
-                '100%': { transform: 'translateY(100%)' },
+              breathe: {
+                '0%, 100%': { transform: 'scale(1)' },
+                '50%': { transform: 'scale(1.02)' },
               }
             }
           }
@@ -96,13 +85,13 @@
     </script>
     <style>
       body {
-        background-color: #03050C;
-        color: #e0e7ff;
+        background-color: #FDFCF8;
+        color: #334155;
         overflow-x: hidden;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
-      /* Tech Scrollbar */
+      /* Soft Scrollbar */
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -111,19 +100,11 @@
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.1);
         border-radius: 3px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-      
-      /* Utilities */
-      .text-glow {
-        text-shadow: 0 0 15px rgba(255,255,255,0.4);
-      }
-      .border-glow {
-         box-shadow: 0 0 10px rgba(34, 211, 238, 0.1), inset 0 0 10px rgba(34, 211, 238, 0.05);
+        background: rgba(0, 0, 0, 0.2);
       }
     </style>
   <script type="importmap">

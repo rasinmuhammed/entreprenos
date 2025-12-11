@@ -106,8 +106,16 @@ class GeminiLiveBridge {
         },
         config: {
           systemInstruction: config.systemInstruction || `
-            You are EntreprenOS, an Agentic Operating System. 
-            Goal: Be a 'Sensory Bridge' for disabled founders.
+            You are EntreprenOS, a supportive business companion.
+            
+            TONE: Warm, Calm, Encouraging, Patient.
+            IDENTITY: A mindful partner, not a robot.
+            
+            CORE BEHAVIOR:
+            - If the user stutters or pauses, wait patiently. Do not rush.
+            - Use simple, human language. No jargon.
+            - When the user is overwhelmed (Focus Mode), speak in short, gentle sentences.
+            - Your goal is to reduce anxiety, not just maximize efficiency.
             
             PRIVACY SHIELD: ${store.liveState.privacyMode === 'PUBLIC' ? 'ACTIVE. DO NOT speak sensitive numbers (Revenue, Cash Balance) out loud. Whisper summaries only.' : 'INACTIVE. You may speak normally.'}
             
@@ -140,7 +148,7 @@ class GeminiLiveBridge {
     if (this.session) {
        // Send a system instruction update via text input to steer the model
        this.session.sendRealtimeInput([{ 
-          text: `SYSTEM ALERT: User has switched Privacy Mode to ${mode}. ${mode === 'PUBLIC' ? 'STOP speaking specific financial numbers immediately. Say "Displayed on screen" instead.' : 'You may now speak freely and read data out loud.'}` 
+          text: `SYSTEM ALERT: User has switched Privacy Mode to ${mode}. ${mode === 'PUBLIC' ? 'STOP speaking specific financial numbers immediately. Say "Displayed on screen" instead.' : 'You may now speak freely.'}` 
        }]);
     }
   }
@@ -208,7 +216,7 @@ class GeminiLiveBridge {
        store.setLiveState({ isThinking: false });
     }
 
-    // NEW: Handle Text & Sentiment extraction if present in parts
+    // Handle Text & Sentiment extraction
     const textPart = message.serverContent?.modelTurn?.parts?.find(p => p.text);
     if (textPart && textPart.text) {
        this.parseSentiment(textPart.text);
@@ -239,7 +247,7 @@ class GeminiLiveBridge {
            tone: tone,
            text: text.replace(regex, '').trim(),
            timestamp: Date.now(),
-           intensity: 0.8 // Simulated intensity
+           intensity: 0.8
         });
      }
   }
@@ -262,7 +270,6 @@ class GeminiLiveBridge {
        result = { status: "widget_created" };
     }
     else if (fc.name === 'update_business_context') {
-       // Update Dossier Incrementally
        store.updateDossier({
           industry: fc.args.industry,
           revenueModel: fc.args.revenueModel,
@@ -273,7 +280,6 @@ class GeminiLiveBridge {
        result = { status: "context_updated" };
     }
 
-    // Send response back
     if (this.session) {
       this.session.sendToolResponse({
         functionResponses: {
@@ -288,7 +294,6 @@ class GeminiLiveBridge {
   private async playAudioChunk(base64Audio: string) {
     if (!this.outputAudioContext) return;
     
-    // Decode Base64 to ArrayBuffer
     const binaryString = atob(base64Audio);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
@@ -296,14 +301,12 @@ class GeminiLiveBridge {
         bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Decode Audio
     const audioBuffer = await this.decodeAudioData(bytes, this.outputAudioContext);
     
     const source = this.outputAudioContext.createBufferSource();
     source.buffer = audioBuffer;
     source.connect(this.outputAudioContext.destination);
     
-    // Schedule Playback
     this.nextStartTime = Math.max(this.outputAudioContext.currentTime, this.nextStartTime);
     source.start(this.nextStartTime);
     this.nextStartTime += audioBuffer.duration;
@@ -313,7 +316,6 @@ class GeminiLiveBridge {
   }
 
   private async decodeAudioData(data: Uint8Array, ctx: AudioContext): Promise<AudioBuffer> {
-     // Raw PCM decoding manually since decodeAudioData expects file headers (wav/mp3)
      const inputInt16 = new Int16Array(data.buffer);
      const float32 = new Float32Array(inputInt16.length);
      for (let i=0; i<inputInt16.length; i++) {
@@ -329,7 +331,6 @@ class GeminiLiveBridge {
     const l = data.length;
     const int16 = new Int16Array(l);
     for (let i = 0; i < l; i++) {
-        // Clamp values to prevent wrapping artifacts
         int16[i] = Math.max(-32768, Math.min(32767, data[i] * 32768));
     }
     let binary = '';
