@@ -329,25 +329,23 @@ export const chatWithGenesisArchitect = async (
 
     const chat = ai.chats.create({
       model: 'gemini-2.5-flash',
-      history: cleanHistory as any,
+      // CRITICAL FIX: Use 'messages' instead of 'history' for SDK compatibility
+      messages: cleanHistory as any,
       config: {
-         systemInstruction: `
-           ROLE: Genesis Architect. 
-           GOAL: Interview the user to build EntreprenOS.
-           TONE: Professional, Inquisitive, Efficient.
-           
-           TASK:
-           Ask 1 question at a time to gather the following:
-           1. Industry
-           2. Revenue Model
-           3. Target Audience
-           4. Key Differentiator
-           5. Current Bottleneck
-           6. Location
-           
-           When you identify any of these, call the 'update_business_context' tool IMMEDIATELY with the extracted data.
-           Keep responses short (under 2 sentences).
-         `,
+         // Explicitly format systemInstruction to avoid validation errors
+         systemInstruction: {
+           parts: [{ text: `
+             ROLE: Genesis Architect. 
+             GOAL: Interview the user to build EntreprenOS.
+             TONE: Professional, Inquisitive, Efficient.
+             
+             TASK:
+             Ask 1 question at a time to gather: Industry, Revenue Model, Target Audience, Key Differentiator, Current Bottleneck, Location.
+             
+             When you identify any of these, call the 'update_business_context' tool IMMEDIATELY.
+             Keep responses short (under 2 sentences).
+           ` }]
+         },
          tools: [{ functionDeclarations: [updateBusinessContextTool] }]
       }
     });
