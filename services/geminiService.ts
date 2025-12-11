@@ -315,13 +315,12 @@ export const chatWithGenesisArchitect = async (
   try {
     // RIGOROUS SANITIZATION for ContentUnion errors
     const cleanHistory = history.map(h => {
-      // 1. Normalize role to 'user' or 'model'
+      // 1. Normalize role to strictly 'user' or 'model'
       const role = (h.role === 'ai' || h.role === 'model') ? 'model' : 'user';
       
-      // 2. Ensure parts exist and have non-empty text
-      // If text is empty/undefined, use a single space " " (valid) instead of "" (invalid)
+      // 2. Ensure parts are strictly formatted as [{ text: "..." }]
       const validParts = (h.parts && h.parts.length > 0) 
-        ? h.parts.map(p => ({ text: p.text || " " })) 
+        ? h.parts.map(p => ({ text: p.text || " " })) // Fallback to space if text is missing
         : [{ text: " " }];
 
       return { role, parts: validParts };
@@ -330,7 +329,7 @@ export const chatWithGenesisArchitect = async (
     const chat = ai.chats.create({
       model: 'gemini-2.5-flash',
       // CRITICAL FIX: Use 'messages' instead of 'history' for SDK compatibility
-      messages: cleanHistory as any,
+      messages: cleanHistory as any, 
       config: {
          // Explicitly format systemInstruction to avoid validation errors
          systemInstruction: {
@@ -350,7 +349,8 @@ export const chatWithGenesisArchitect = async (
       }
     });
 
-    const result = await chat.sendMessage(userInput);
+    // Explicitly wrap user input in a part array
+    const result = await chat.sendMessage([{ text: userInput }]);
     return { text: result.response.text || "", toolCalls: result.response.functionCalls };
   } catch (e) {
     console.error("Genesis Chat Error", e);
