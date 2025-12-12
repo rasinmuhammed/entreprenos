@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { GlassPane } from '../ui/GlassPane';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Map, Navigation, MapPin, Building2, Footprints, Lightbulb, Radar, Scan, Zap, AlertTriangle, MessageSquare, Star, Users, Send, RefreshCw, ThumbsUp, ThumbsDown, Store, TrendingUp, Tag } from 'lucide-react';
+import { Map, Navigation, MapPin, Building2, Footprints, Lightbulb, Radar, Scan, Zap, AlertTriangle, MessageSquare, Star, Users, Send, RefreshCw, ThumbsUp, ThumbsDown, Store, TrendingUp, Tag, AlertCircle } from 'lucide-react';
 import { analyzeLocationLeverage, analyzeGoogleReviews, chatWithShopBoard } from '../../services/geminiService';
 import { SearchVisualizer } from '../ui/SearchVisualizer';
 import { ThemeMode } from '../../types';
@@ -23,6 +23,7 @@ export const LocalIntelligence: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('RADAR');
   const [reviewsData, setReviewsData] = useState<any>(null);
   const [isAnalyzingReviews, setIsAnalyzingReviews] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   
   const [chatInput, setChatInput] = useState('');
   const [chatHistory, setChatHistory] = useState<{sender: 'user'|'board', text: string}[]>([]);
@@ -41,10 +42,17 @@ export const LocalIntelligence: React.FC = () => {
   const handleRunReviews = async () => {
     if (!context) return;
     setIsAnalyzingReviews(true);
+    setReviewError(null);
     try {
       const result = await analyzeGoogleReviews(context);
+      if (!result || typeof result !== 'object') throw new Error("Invalid review data received");
       setReviewsData(result);
-    } catch (e) { console.error(e); } finally { setIsAnalyzingReviews(false); }
+    } catch (e) { 
+       console.error(e); 
+       setReviewError("Failed to sync reviews. Please check your connection or try again.");
+    } finally { 
+       setIsAnalyzingReviews(false); 
+    }
   };
 
   const handleBoardChat = async (e: React.FormEvent) => {
@@ -212,6 +220,24 @@ export const LocalIntelligence: React.FC = () => {
       );
     }
 
+    if (reviewError) {
+       return (
+          <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+             <div className="w-16 h-16 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center mb-4">
+                <AlertCircle className="w-8 h-8 text-rose-500" />
+             </div>
+             <h3 className="text-lg font-bold text-rose-700 mb-2">Analysis Failed</h3>
+             <p className="text-ink-500 mb-6 max-w-sm text-sm">{reviewError}</p>
+             <button 
+                onClick={handleRunReviews}
+                className="px-6 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-ink-900 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"
+             >
+                <RefreshCw className="w-3 h-3" /> Retry Analysis
+             </button>
+          </div>
+       );
+    }
+
     if (!reviewsData) {
        return (
          <div className="h-full flex flex-col items-center justify-center text-center p-10">
@@ -232,14 +258,17 @@ export const LocalIntelligence: React.FC = () => {
        );
     }
 
+    // Defensive rendering for reviews array
+    const safeReviews = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
+
     return (
        <div className="h-full flex flex-col gap-6">
           <div className="grid grid-cols-3 gap-6">
              <GlassPane className="p-6 flex flex-col items-center justify-center text-center bg-white border-slate-200">
-                <div className="text-5xl font-bold mb-2 text-ink-900 tracking-tighter">{reviewsData.averageRating}</div>
+                <div className="text-5xl font-bold mb-2 text-ink-900 tracking-tighter">{reviewsData.averageRating || '0.0'}</div>
                 <div className="flex gap-1 mb-3">
                    {[1,2,3,4,5].map(i => (
-                      <Star key={i} className={`w-5 h-5 ${i <= Math.round(reviewsData.averageRating) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                      <Star key={i} className={`w-5 h-5 ${i <= Math.round(reviewsData.averageRating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
                    ))}
                 </div>
                 <div className="text-xs uppercase font-bold tracking-widest text-ink-400">Average Rating</div>
@@ -247,7 +276,7 @@ export const LocalIntelligence: React.FC = () => {
              <GlassPane className="col-span-2 p-6 bg-slate-50 border-slate-200">
                 <h3 className="text-sm font-bold mb-3 text-ink-900 uppercase tracking-wide">Sentiment Summary</h3>
                 <p className="text-sm leading-relaxed mb-6 text-ink-600">
-                   "{reviewsData.summary}"
+                   "{reviewsData.summary || 'No summary available.'}"
                 </p>
                 
                 <div className="flex gap-6 mt-4 pt-4 border-t border-slate-200">
@@ -289,35 +318,48 @@ export const LocalIntelligence: React.FC = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
-             {reviewsData.reviews?.map((review: any, idx: number) => (
-                <GlassPane key={idx} className="p-5" hoverEffect>
-                   <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-3">
-                         <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold bg-slate-100 text-ink-600 text-sm">
-                            {review.author[0]}
-                         </div>
-                         <div>
-                            <div className="text-sm font-bold text-ink-900">{review.author}</div>
-                            <div className="flex text-amber-400 w-20">
-                               {[...Array(review.rating)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
-                            </div>
-                         </div>
-                      </div>
-                      <div className="text-xs text-ink-400 font-medium">{review.date}</div>
-                   </div>
-                   <p className="text-sm mt-2 mb-4 pl-12 text-ink-600 leading-relaxed">
-                      "{review.text}"
-                   </p>
-                   <div className="pl-12 flex gap-2">
-                      <button className="text-xs px-3 py-1.5 rounded border border-slate-200 text-ink-600 hover:bg-slate-50 font-medium transition-colors">
-                         Suggest Reply
-                      </button>
-                      <button className="text-xs px-3 py-1.5 rounded border border-slate-200 text-ink-400 hover:bg-slate-50 hover:text-ink-600 font-medium transition-colors">
-                         Ignore
-                      </button>
-                   </div>
-                </GlassPane>
-             ))}
+             {safeReviews.length === 0 ? (
+                <div className="text-center p-8 text-ink-400 italic">No individual reviews analyzed.</div>
+             ) : (
+                safeReviews.map((review: any, idx: number) => {
+                  // Safety logic for hallucinated keys
+                  const author = review.author || review.reviewerName || "Anonymous Customer";
+                  const initial = author.charAt(0).toUpperCase() || "?";
+                  const rating = review.rating || 0;
+                  
+                  return (
+                    <GlassPane key={idx} className="p-5" hoverEffect>
+                       <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-3">
+                             <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold bg-slate-100 text-ink-600 text-sm border border-slate-200">
+                                {initial}
+                             </div>
+                             <div>
+                                <div className="text-sm font-bold text-ink-900">{author}</div>
+                                <div className="flex text-amber-400 w-20">
+                                   {[...Array(5)].map((_, i) => (
+                                      <Star key={i} className={`w-3 h-3 ${i < rating ? 'fill-current' : 'text-slate-200'}`} />
+                                   ))}
+                                </div>
+                             </div>
+                          </div>
+                          <div className="text-xs text-ink-400 font-medium">{review.date || 'Recent'}</div>
+                       </div>
+                       <p className="text-sm mt-2 mb-4 pl-12 text-ink-600 leading-relaxed font-medium">
+                          "{review.text || review.comment || 'No comment provided.'}"
+                       </p>
+                       <div className="pl-12 flex gap-2">
+                          <button className="text-xs px-3 py-1.5 rounded border border-slate-200 text-ink-600 hover:bg-slate-50 font-medium transition-colors">
+                             Suggest Reply
+                          </button>
+                          <button className="text-xs px-3 py-1.5 rounded border border-slate-200 text-ink-400 hover:bg-slate-50 hover:text-ink-600 font-medium transition-colors">
+                             Ignore
+                          </button>
+                       </div>
+                    </GlassPane>
+                  );
+                })
+             )}
           </div>
        </div>
     );

@@ -3,9 +3,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/appStore';
 import { AgentOrchestrator } from '../../services/agentOrchestrator';
-import { BoardRole } from '../../types';
+import { BoardRole, View } from '../../types';
 import { GlassPane } from '../ui/GlassPane';
-import { BrainCircuit, Briefcase, TrendingUp, Users, Send, Sparkles, BookPlus, AlertTriangle, GitBranch, Target, ShieldAlert, Zap } from 'lucide-react';
+import { BrainCircuit, Briefcase, TrendingUp, Users, Send, Sparkles, BookPlus, AlertTriangle, GitBranch, Target, ShieldAlert, Zap, ArrowLeft } from 'lucide-react';
 import { generateMicroTaskPlan } from '../../services/geminiService';
 
 export const BoardRoom: React.FC = () => {
@@ -17,7 +17,8 @@ export const BoardRoom: React.FC = () => {
     setBoardRoomConsensus,
     addLogEntry,
     updateBoardRoomState,
-    startFocusSession
+    startFocusSession,
+    setView
   } = useAppStore();
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -58,6 +59,11 @@ export const BoardRoom: React.FC = () => {
     } catch (err) {
       console.error(err);
       setBoardRoomThinking(false);
+      updateBoardRoomState({
+         recommendation: "The board was unable to reach a consensus. Please try rephrasing your question.",
+         risks: ["System connection interrupted"],
+         alternatives: ["Retry inquiry"]
+      });
     }
     
     setInput('');
@@ -80,6 +86,10 @@ export const BoardRoom: React.FC = () => {
       <GlassPane className="flex-[2] flex flex-col overflow-hidden bg-white shadow-crisp border-slate-200 relative">
          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white/50 backdrop-blur-sm sticky top-0 z-10">
             <div className="flex items-center gap-3">
+               {/* Back Button for mobile or direct access */}
+               <button onClick={() => setView(View.DASHBOARD)} className="md:hidden p-2 hover:bg-slate-100 rounded-lg text-ink-400">
+                  <ArrowLeft className="w-5 h-5" />
+               </button>
                <div className="p-2 bg-indigo-50 rounded-lg">
                   <Users className="w-5 h-5 text-indigo-600" />
                </div>
@@ -255,4 +265,3 @@ export const BoardRoom: React.FC = () => {
     </div>
   );
 };
-    

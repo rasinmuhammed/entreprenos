@@ -2,14 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Power, Activity, Lock, Unlock, Ear, EarOff, VolumeX, Eye } from 'lucide-react';
+import { Mic, MicOff, Power, Activity, Lock, Unlock, Ear, EarOff, VolumeX } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { liveBridge } from '../../services/geminiLiveBridge';
-import { AccessibilityMode } from '../../types';
 
 export const SensoryInput: React.FC = () => {
   const { connect, disconnect, isConnected, volume } = useGeminiLive();
-  const { liveState, setPrivacyMode, accessibilityMode } = useAppStore();
+  const { liveState, setPrivacyMode } = useAppStore();
   const [showNoiseAlert, setShowNoiseAlert] = useState(false);
 
   const handleToggle = () => {
@@ -40,16 +39,6 @@ export const SensoryInput: React.FC = () => {
     }
   }, [volume, isConnected, liveState.privacyMode]);
 
-  // Dynamic Labels based on Mode
-  const isDeafMode = accessibilityMode === AccessibilityMode.SENTIMENT_HUD;
-  const statusLabel = isConnected 
-    ? (isDeafMode ? "TRANSCRIBING AUDIO..." : "LISTENING...") 
-    : (isDeafMode ? "CAPTIONS OFF" : "VOICE CONTROL OFF");
-  
-  const instructionText = isDeafMode 
-    ? "Click power to start transcribing nearby speech." 
-    : "Click power button to speak to the Assistant.";
-
   return (
     // High Contrast "System Control" Bar (Dark Navy on Light Theme)
     <div className="relative flex items-center justify-between p-4 bg-ink-950 text-white shadow-2xl border-t border-ink-900 z-50">
@@ -78,7 +67,7 @@ export const SensoryInput: React.FC = () => {
         <button 
           onClick={handleToggle}
           className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 relative group ${isConnected ? 'bg-rose-500/20 hover:bg-rose-500/30' : 'bg-white/10 hover:bg-white/20'}`}
-          title={isConnected ? "Stop" : "Start"}
+          title={isConnected ? "Stop Listening" : "Start Voice Control"}
         >
           <div className={`absolute inset-0 rounded-full blur-md opacity-0 group-hover:opacity-50 transition-opacity ${isConnected ? 'bg-rose-500' : 'bg-tech-cyan'}`} />
           <Power className={`w-6 h-6 relative z-10 ${isConnected ? 'text-rose-500' : 'text-slate-400 group-hover:text-white'}`} />
@@ -86,8 +75,8 @@ export const SensoryInput: React.FC = () => {
 
         <div className="flex-1 flex flex-col justify-center">
           <div className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-2 font-bold">
-             {isDeafMode ? <Eye className="w-3 h-3" /> : <Activity className="w-3 h-3" />}
-             {isConnected ? <span className="text-emerald-400">{statusLabel}</span> : statusLabel}
+             <Activity className="w-3 h-3" />
+             {isConnected ? <span className="text-emerald-400">LISTENING...</span> : "VOICE CONTROL OFF"}
           </div>
           
           {/* Dynamic Waveform */}
@@ -105,7 +94,7 @@ export const SensoryInput: React.FC = () => {
                   />
                 ))
              ) : (
-                <div className="text-slate-500 text-xs font-medium">{instructionText}</div>
+                <div className="text-slate-500 text-xs font-medium">Click power button to speak to the Assistant.</div>
              )}
           </div>
         </div>

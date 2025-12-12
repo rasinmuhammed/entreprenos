@@ -283,7 +283,8 @@ export enum View {
   COMMUNICATIONS = "COMMUNICATIONS",
   LEAD_INTERCEPTOR = "LEAD_INTERCEPTOR",
   FEATURE_LAB = "FEATURE_LAB",
-  TEAM = "TEAM"
+  TEAM = "TEAM",
+  INTEGRATIONS = "INTEGRATIONS" // Added this
 }
 
 export enum LogType {

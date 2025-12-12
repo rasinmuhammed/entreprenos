@@ -2,88 +2,78 @@
 import React, { useEffect, useState } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, MessageSquare, Ear } from 'lucide-react';
+import { Mic, Eye, X } from 'lucide-react';
 
 export const SentimentHUD: React.FC = () => {
   const { sentimentStream, liveState } = useAppStore();
-  const [showSpeakNow, setShowSpeakNow] = useState(false);
-
-  // Silence Detection Logic
-  useEffect(() => {
-    if (liveState.isConnected && liveState.volumeLevel < 0.01) {
-       const timer = setTimeout(() => setShowSpeakNow(true), 2000); // 2s silence gap
-       return () => clearTimeout(timer);
-    } else {
-       setShowSpeakNow(false);
-    }
-  }, [liveState.volumeLevel, liveState.isConnected]);
+  const [minimized, setMinimized] = useState(false);
 
   const getToneColor = (tone: string) => {
     switch (tone) {
-      case 'positive': return 'bg-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.4)]';
-      case 'negative': return 'bg-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.4)]';
-      case 'skeptical': return 'bg-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.4)]';
-      case 'excited': return 'bg-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.4)]';
-      case 'conflict': return 'bg-red-600 shadow-[0_0_30px_rgba(220,38,38,0.6)] animate-pulse';
-      default: return 'bg-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.4)]';
+      case 'positive': return 'border-emerald-400/50 bg-emerald-500/10 text-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.2)]';
+      case 'negative': return 'border-rose-400/50 bg-rose-500/10 text-rose-100 shadow-[0_0_15px_rgba(244,63,94,0.2)]';
+      case 'skeptical': return 'border-amber-400/50 bg-amber-500/10 text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.2)]';
+      case 'excited': return 'border-purple-400/50 bg-purple-500/10 text-purple-100 shadow-[0_0_15px_rgba(168,85,247,0.2)]';
+      case 'conflict': return 'border-red-500/50 bg-red-600/10 text-red-100 shadow-[0_0_15px_rgba(220,38,38,0.2)] animate-pulse';
+      default: return 'border-blue-400/50 bg-blue-500/10 text-blue-100';
     }
   };
 
+  if (minimized) {
+     return (
+        <button 
+          onClick={() => setMinimized(false)}
+          className="bg-black/80 backdrop-blur-md border border-white/10 p-3 rounded-full shadow-lg hover:scale-110 transition-transform group pointer-events-auto"
+        >
+           <Eye className="w-5 h-5 text-tech-cyan group-hover:text-white" />
+        </button>
+     );
+  }
+
   return (
-    <div className="h-full relative overflow-hidden bg-black">
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-[80vw] h-[80vh] border border-white/10 rounded-full opacity-20" />
-      </div>
-
-      <div className="h-full flex flex-col justify-end p-8 pb-20 max-w-4xl mx-auto space-y-6">
-         {/* Accessibility Instructions */}
-         {sentimentStream.length === 0 && (
-            <div className="text-center text-white/50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <Ear className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-xl font-bold mb-2">Visual Captions Active</h3>
-                <p className="max-w-md">This mode visualizes spoken conversation tone and transcribes speech for Deaf or Hard-of-Hearing users. Enable the microphone to begin.</p>
+    <div className="w-96 max-h-[400px] flex flex-col pointer-events-auto">
+      <div className="bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+         {/* Header */}
+         <div className="p-3 border-b border-white/10 flex justify-between items-center bg-white/5">
+            <div className="flex items-center gap-2">
+               <Eye className="w-4 h-4 text-tech-cyan" />
+               <span className="text-xs font-bold text-white uppercase tracking-wider">Visual Captions</span>
             </div>
-         )}
+            <button onClick={() => setMinimized(true)} className="text-white/40 hover:text-white transition-colors">
+               <X className="w-3 h-3" />
+            </button>
+         </div>
 
-         <AnimatePresence>
-            {sentimentStream.map((frame) => (
-               <motion.div
-                 key={frame.id}
-                 initial={{ opacity: 0, scale: 0.5, y: 50 }}
-                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                 exit={{ opacity: 0, scale: 0.8, y: -50 }}
-                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                 className={`self-start max-w-lg p-6 rounded-3xl rounded-bl-none text-white backdrop-blur-md border border-white/10 relative ${getToneColor(frame.tone)} bg-opacity-20`}
-               >
-                  <div className="text-[10px] font-mono uppercase opacity-70 mb-2 flex justify-between">
-                     <span>{frame.speaker}</span>
-                     <span className="font-bold">{frame.tone}</span>
-                  </div>
-                  <div className="text-xl font-medium leading-relaxed">
-                     {frame.text}
-                  </div>
-               </motion.div>
-            ))}
-         </AnimatePresence>
-         
-         {/* Silence / Speak Now Indicator */}
-         <AnimatePresence>
-            {showSpeakNow && (
-               <motion.div
-                 initial={{ opacity: 0, scale: 0.8 }}
-                 animate={{ opacity: 1, scale: 1 }}
-                 exit={{ opacity: 0 }}
-                 className="absolute bottom-32 left-1/2 -translate-x-1/2"
-               >
-                  <div className="px-6 py-3 bg-white text-black font-bold rounded-full shadow-glow animate-bounce flex items-center gap-2">
-                     <Mic className="w-5 h-5" /> Waiting for speech...
-                  </div>
-               </motion.div>
+         {/* Stream */}
+         <div className="p-4 space-y-3 overflow-y-auto max-h-64 flex flex-col-reverse">
+            {sentimentStream.length === 0 && (
+               <div className="text-center py-4 text-white/30 text-xs font-mono">
+                  {liveState.isConnected ? "Listening for speech..." : "Microphone inactive."}
+               </div>
             )}
-         </AnimatePresence>
+            
+            <AnimatePresence initial={false}>
+               {[...sentimentStream].reverse().slice(0, 4).map((frame) => (
+                  <motion.div
+                    key={frame.id}
+                    initial={{ opacity: 0, x: 20, scale: 0.9 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className={`p-3 rounded-xl border text-sm font-medium backdrop-blur-sm relative ${getToneColor(frame.tone)}`}
+                  >
+                     <div className="flex justify-between items-center mb-1 opacity-70 text-[10px] font-mono uppercase">
+                        <span>{frame.speaker}</span>
+                        <span className="font-bold">{frame.tone}</span>
+                     </div>
+                     <div className="leading-snug">{frame.text}</div>
+                  </motion.div>
+               ))}
+            </AnimatePresence>
+         </div>
 
-         <div className="absolute bottom-8 left-0 right-0 flex justify-center text-white/30 text-sm font-mono">
-            {liveState.isConnected ? "MICROPHONE ACTIVE - VISUALIZING AUDIO" : "MICROPHONE OFF"}
+         {/* Status Footer */}
+         <div className="p-2 bg-white/5 text-[9px] font-mono text-white/30 text-center border-t border-white/5">
+            {liveState.isConnected ? "LIVE TRANSCRIPTION ACTIVE" : "OFFLINE"}
          </div>
       </div>
     </div>

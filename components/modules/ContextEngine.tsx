@@ -1,61 +1,53 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Video, StopCircle, Camera, MessageSquare, Zap, MapPin, Check, BrainCircuit, Send, User, Bot, Loader2, Sparkles, Volume2, ArrowRight, Keyboard } from 'lucide-react';
+import { Mic, Video, StopCircle, Camera, MessageSquare, Zap, MapPin, Check, BrainCircuit, Send, User, Bot, Loader2, Sparkles, Volume2, ArrowRight, Keyboard, ArrowLeft, AlertCircle, X, Building2, Lightbulb, Search, Globe, Briefcase } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
-import { performDeepResearch, constructDashboard, generateTeamStructure, generateMicroTaskPlan, chatWithGenesisArchitect } from '../../services/geminiService';
+import { performDeepResearch, constructDashboard, generateTeamStructure, chatWithGenesisArchitect } from '../../services/geminiService';
 import { GlassPane } from '../ui/GlassPane';
 import { SystemBuilder } from './SystemBuilder';
 import { useMultimodalInput } from '../../hooks/useMultimodalInput';
 import { AudioVisualizer } from '../ui/AudioVisualizer';
 import { liveBridge } from '../../services/geminiLiveBridge';
-import { AccessibilityMode, ThemeMode } from '../../types';
+import { AccessibilityMode, ThemeMode, EntityDossier } from '../../types';
+import { GoogleGenAI } from '@google/genai';
 
 enum Phase { INIT = 0, PITCH = 1, INTERVIEW = 2, ANALYZING = 4, VERIFY_LOCATION = 5, BUILDING = 6 }
+enum WizardStep { MODE_SELECT = 'MODE', SEARCH = 'SEARCH', CONFIRM = 'CONFIRM', MANUAL = 'MANUAL' }
 
-export const ContextEngine: React.FC = () => {
+interface ContextEngineProps {
+  onBack?: () => void;
+}
+
+export const ContextEngine: React.FC<ContextEngineProps> = ({ onBack }) => {
   const { 
-    setContext, setWidgets, setDossier, setSentiment, startOnboarding, 
-    accessibilityMode, research, setThemeMode, setTeam, startFocusSession, team, updateDossier 
+    setContext, setWidgets, setSentiment, startOnboarding, 
+    accessibilityMode, research, setTeam, updateDossier 
   } = useAppStore();
   
   const [phase, setPhase] = useState<Phase>(Phase.INIT);
   const [error, setError] = useState<string | null>(null);
-  const [interviewStarted, setInterviewStarted] = useState(false);
-  const [interactionMode, setInteractionMode] = useState<'VOICE' | 'TEXT'>('VOICE');
-  const [textInput, setTextInput] = useState('');
-  const [chatHistory, setChatHistory] = useState<{role: 'user'|'model', parts: {text: string}[]}[]>([]);
-  const [isThinking, setIsThinking] = useState(false);
   
+  // Wizard State
+  const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.MODE_SELECT);
+  const [searchInputs, setSearchInputs] = useState({ name: '', location: '' });
+  const [manualInputs, setManualInputs] = useState({ name: '', industry: '', description: '' });
+  const [foundEntity, setFoundEntity] = useState<EntityDossier | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
   const { isRecording, startRecording, stopRecording, stream } = useMultimodalInput();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const chatScrollRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll chat
-  useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-    }
-  }, [chatHistory, isThinking, interactionMode]);
 
   useEffect(() => {
-    // Intelligent Phase Skipping based on Accessibility Profile
+    // Intelligent Phase Skipping
     switch (accessibilityMode) {
       case AccessibilityMode.SONIC_VIEW:
-        setPhase(Phase.INTERVIEW); 
-        setInteractionMode('VOICE'); // Blind users prefer Voice
-        break;
       case AccessibilityMode.SENTIMENT_HUD:
-        setPhase(Phase.INTERVIEW);
-        setInteractionMode('TEXT'); // Deaf/HoH users prefer Text
-        break;
       case AccessibilityMode.FOCUS_SHIELD:
-        setPhase(Phase.INTERVIEW);
-        setInteractionMode('TEXT'); // ADHD users often prefer direct Text to avoid audio distraction
+        setPhase(Phase.INTERVIEW); 
         break;
       default: 
         setPhase(Phase.PITCH); // Standard users get the full Pitch experience
-        setInteractionMode('VOICE');
         break;
     }
   }, [accessibilityMode]);
@@ -64,29 +56,18 @@ export const ContextEngine: React.FC = () => {
     if (videoRef.current && stream) videoRef.current.srcObject = stream;
   }, [stream]);
 
-  useEffect(() => {
-    // Only auto-connect live bridge if we are in Voice mode and Interview phase
-    // PREVENT auto-connection for Text mode (Deaf/HoH)
-    if (phase === Phase.INTERVIEW && interactionMode === 'VOICE' && !interviewStarted) {
-       setInterviewStarted(true);
-       if (accessibilityMode === AccessibilityMode.SONIC_VIEW) {
-          setTimeout(() => {
-             liveBridge.connect({
-                voiceName: 'Kore',
-                systemInstruction: `ROLE: Genesis Architect. CONTEXT: User is blind. GOAL: Interview to build EntreprenOS.`
-             });
-          }, 500);
-       } else {
-          liveBridge.connect({
-             voiceName: 'Kore',
-             systemInstruction: `ROLE: Business Architect. GOAL: Determine if user is New or Existing business. Extract Industry, Revenue Model, Target Audience.`
-          });
-       }
-    } else if (interactionMode === 'TEXT') {
-       // Ensure bridge is disconnected if in text mode to prevent "Listening..." state
-       liveBridge.disconnect();
-    }
-  }, [phase, interviewStarted, accessibilityMode, interactionMode]);
+  const handleBackNavigation = async () => {
+     if (phase === Phase.INTERVIEW && accessibilityMode === AccessibilityMode.STANDARD) {
+        if (wizardStep !== WizardStep.MODE_SELECT) {
+           setWizardStep(WizardStep.MODE_SELECT);
+           return;
+        }
+        setPhase(Phase.PITCH);
+     } else {
+        if (stopRecording) await stopRecording();
+        if (onBack) onBack();
+     }
+  };
 
   const handleStopPitch = async () => {
     if (!isRecording) return;
@@ -94,81 +75,108 @@ export const ContextEngine: React.FC = () => {
     setPhase(Phase.INTERVIEW);
   };
 
-  const handleManualBuild = async () => {
-     if (research.dossier) {
-        handleVerificationComplete(research.dossier.location || "Global");
-     } else {
-        handleVerificationComplete("Global");
+  // --- WIZARD LOGIC ---
+
+  const identifyBusiness = async () => {
+     if (!searchInputs.name.trim() || !searchInputs.location.trim()) return;
+     
+     setIsSearching(true);
+     setError(null);
+     
+     try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const prompt = `
+           Identify the business "${searchInputs.name}" in "${searchInputs.location}".
+           Return a JSON object with:
+           {
+             "name": "Exact Business Name",
+             "industry": "Industry Sector",
+             "description": "2 sentence summary of what they do",
+             "location": "${searchInputs.location}",
+             "website": "url if known",
+             "foundingDate": "year",
+             "confidence": "High/Medium/Low"
+           }
+           If not a real famous business, simulate a plausible profile based on the name.
+        `;
+        
+        const response = await ai.models.generateContent({
+           model: 'gemini-2.5-flash',
+           contents: prompt,
+           config: { responseMimeType: 'application/json' }
+        });
+        
+        const data = JSON.parse(response.text || '{}');
+        setFoundEntity({
+           name: data.name || searchInputs.name,
+           industry: data.industry || 'Unknown',
+           description: data.description || 'No description available',
+           location: data.location || searchInputs.location,
+           website: data.website,
+           founders: [],
+           coreProduct: 'Services'
+        });
+        setWizardStep(WizardStep.CONFIRM);
+
+     } catch (e) {
+        console.error(e);
+        setError("Could not identify business. Please enter manually.");
+        setWizardStep(WizardStep.MANUAL);
+     } finally {
+        setIsSearching(false);
      }
   };
 
-  const handleVerificationComplete = async (location: string) => {
+  const handleBuildOS = async (dossier: EntityDossier) => {
     setPhase(Phase.BUILDING);
-    if (!research.dossier) return;
-
+    
     try {
       // 1. Deep Research
-      const sentiment = await performDeepResearch(research.dossier);
+      const sentiment = await performDeepResearch(dossier);
       setSentiment(sentiment);
 
       // 2. Build Dashboard
-      const dashboard = await constructDashboard(research.dossier, sentiment);
+      const dashboard = await constructDashboard(dossier, sentiment);
       setWidgets(dashboard.widgets);
 
       // 3. Hire Team
-      const newTeam = await generateTeamStructure(research.dossier);
+      const newTeam = await generateTeamStructure(dossier);
       setTeam(newTeam);
 
       // 4. Set Context & Launch
       setContext({
-        name: research.dossier.name,
-        businessName: research.dossier.name,
-        industry: research.dossier.industry,
-        description: research.dossier.description,
+        name: dossier.name,
+        businessName: dossier.name,
+        industry: dossier.industry,
+        description: dossier.description,
         stage: "Growth",
-        location: location,
+        location: dossier.location || "Global",
         generatedAt: Date.now(),
         accessibilityMode: accessibilityMode,
         theme: ThemeMode.NEBULA
       });
       
-      startOnboarding(); // Finish onboarding
+      startOnboarding(); 
     } catch (e) {
       console.error(e);
       setError("Construction failed. Manual override engaged.");
     }
   };
 
-  const handleTextSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!textInput.trim()) return;
-
-    const userMsg = textInput;
-    setChatHistory(prev => [...prev, { role: 'user', parts: [{ text: userMsg }] }]);
-    setTextInput('');
-    setIsThinking(true);
-
-    try {
-       const response = await chatWithGenesisArchitect(chatHistory, userMsg);
-       
-       if (response.toolCalls && response.toolCalls.length > 0) {
-          // Process tool calls (mock execution, assuming service handled context update)
-          const contextUpdate = response.toolCalls.find((tc: any) => tc.name === 'update_business_context');
-          if (contextUpdate) {
-             updateDossier(contextUpdate.args);
-          }
-       }
-
-       setChatHistory(prev => [...prev, { role: 'model', parts: [{ text: response.text }] }]);
-    } catch (err) {
-       console.error("Chat Error", err);
-    } finally {
-       setIsThinking(false);
-    }
-  };
-
   return (
-    <div className="w-full max-w-5xl h-[600px] relative">
+    <div className="w-full max-w-5xl h-[85vh] min-h-[600px] relative">
+      {error && (
+         <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl shadow-lg flex items-center gap-3"
+         >
+            <AlertCircle className="w-5 h-5" />
+            <span className="text-sm font-bold">{error}</span>
+            <button onClick={() => setError(null)} className="p-1 hover:bg-rose-100 rounded-full transition-colors"><X className="w-4 h-4" /></button>
+         </motion.div>
+      )}
+
       <AnimatePresence mode="wait">
         
         {/* PHASE 1: INIT / PITCH (Only for Standard Mode) */}
@@ -180,6 +188,14 @@ export const ContextEngine: React.FC = () => {
             exit={{ opacity: 0, scale: 0.95 }}
             className="h-full w-full rounded-3xl overflow-hidden relative bg-slate-900 shadow-2xl border border-slate-800"
           >
+             <button 
+               onClick={handleBackNavigation}
+               className="absolute top-6 left-6 z-30 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/20 group hover:scale-105"
+               title="Go Back"
+             >
+               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+             </button>
+
              {/* Background Video Layer */}
              <div className="absolute inset-0 z-0">
                 <video 
@@ -229,7 +245,7 @@ export const ContextEngine: React.FC = () => {
                      onClick={() => setPhase(Phase.INTERVIEW)} 
                      className="px-8 py-5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold backdrop-blur-md border border-white/10 transition-all flex items-center gap-2"
                    >
-                      Skip to Interview <ArrowRight className="w-4 h-4" />
+                      Skip to Wizard <ArrowRight className="w-4 h-4" />
                    </button>
                 </div>
 
@@ -245,139 +261,208 @@ export const ContextEngine: React.FC = () => {
           </motion.div>
         )}
 
-        {/* PHASE 2: INTERVIEW (Text/Voice Hybrid) */}
+        {/* PHASE 2: WIZARD (Structured Input) */}
         {phase === Phase.INTERVIEW && (
           <motion.div 
             key="interview"
             initial={{ opacity: 0, x: 50 }} 
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
-            className="h-full flex flex-col"
+            className="h-full flex flex-col relative"
           >
-             <GlassPane className="h-full flex flex-col p-0 overflow-hidden bg-white border-slate-200 shadow-2xl">
+             <GlassPane className="h-full p-0 overflow-hidden bg-slate-50 border-slate-200 shadow-2xl relative flex flex-col">
+                
                 {/* Header */}
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div className="h-20 border-b border-slate-100 flex justify-between items-center bg-white px-6 shrink-0">
                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-tech-purple text-white flex items-center justify-center shadow-lg shadow-purple-500/20">
-                         <BrainCircuit className="w-6 h-6" />
+                      <button 
+                        onClick={handleBackNavigation} 
+                        className="p-2 hover:bg-slate-100 rounded-lg text-ink-400 hover:text-ink-900 transition-colors group"
+                        title="Back"
+                      >
+                         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                      </button>
+                      <div className="w-10 h-10 rounded-xl bg-tech-purple text-white flex items-center justify-center shadow-lg shadow-purple-500/20">
+                         <BrainCircuit className="w-5 h-5" />
                       </div>
                       <div>
-                         <h2 className="text-xl font-bold text-ink-900">Genesis Architect</h2>
-                         <p className="text-xs text-ink-500 font-medium">
-                            {interactionMode === 'TEXT' ? 'Text Interview Mode' : 'Voice Link Active'}
+                         <h2 className="text-lg font-bold text-ink-900">Genesis Architect</h2>
+                         <p className="text-[10px] text-ink-500 font-medium uppercase tracking-wider">
+                            System Configuration
                          </p>
                       </div>
-                   </div>
-                   
-                   <div className="flex bg-slate-200/50 p-1 rounded-lg">
-                      <button 
-                        onClick={() => setInteractionMode('VOICE')} 
-                        className={`p-2 rounded-md transition-all ${interactionMode === 'VOICE' ? 'bg-white shadow-sm text-tech-purple' : 'text-ink-400 hover:text-ink-600'}`}
-                        title="Switch to Voice"
-                      >
-                         <Mic className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => setInteractionMode('TEXT')} 
-                        className={`p-2 rounded-md transition-all ${interactionMode === 'TEXT' ? 'bg-white shadow-sm text-tech-purple' : 'text-ink-400 hover:text-ink-600'}`}
-                        title="Switch to Text"
-                      >
-                         <Keyboard className="w-4 h-4" />
-                      </button>
                    </div>
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-hidden relative flex flex-col">
-                   {interactionMode === 'VOICE' ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-white to-slate-50">
-                         <div className="w-40 h-40 rounded-full bg-slate-100 flex items-center justify-center mb-8 relative">
-                            <div className="absolute inset-0 border-4 border-tech-purple/20 rounded-full animate-ping" />
-                            <div className="absolute inset-0 border-4 border-tech-purple/40 rounded-full animate-pulse delay-75" />
-                            <div className="w-32 h-32 bg-white rounded-full shadow-inner flex items-center justify-center relative z-10">
-                               <Volume2 className="w-12 h-12 text-tech-purple animate-bounce" />
-                            </div>
-                         </div>
-                         <h3 className="text-2xl font-bold text-ink-900 mb-2">Voice Link Active</h3>
-                         <p className="text-ink-500 max-w-md">The Architect is listening. Describe your business model, customers, and revenue streams.</p>
-                      </div>
-                   ) : (
-                      <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/50" ref={chatScrollRef}>
-                         {/* Intro Message */}
-                         <div className="flex gap-4">
-                            <div className="w-8 h-8 rounded-full bg-tech-purple text-white flex items-center justify-center shrink-0 shadow-md">
-                               <Bot className="w-4 h-4" />
-                            </div>
-                            <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm text-sm text-ink-700 leading-relaxed max-w-[80%]">
-                               Hello. I am the Genesis Architect. Tell me about your business idea, or existing company. I'll build your dashboard.
-                            </div>
-                         </div>
-
-                         {(chatHistory || []).map((msg, i) => (
-                            <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                               <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-md ${msg.role === 'user' ? 'bg-ink-900 text-white' : 'bg-tech-purple text-white'}`}>
-                                  {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                               </div>
-                               <div className={`p-4 rounded-2xl text-sm leading-relaxed max-w-[80%] shadow-sm ${
-                                  msg.role === 'user' 
-                                  ? 'bg-tech-purple text-white rounded-tr-none' 
-                                  : 'bg-white text-ink-700 border border-slate-200 rounded-tl-none'
-                               }`}>
-                                  {msg.parts && msg.parts.length > 0 ? msg.parts[0].text : '...'}
-                               </div>
-                            </div>
-                         ))}
-
-                         {isThinking && (
-                            <div className="flex gap-4">
-                               <div className="w-8 h-8 rounded-full bg-tech-purple text-white flex items-center justify-center shrink-0 shadow-md">
-                                  <Bot className="w-4 h-4" />
-                               </div>
-                               <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm flex items-center gap-1.5">
-                                  <span className="w-1.5 h-1.5 bg-ink-400 rounded-full animate-bounce" />
-                                  <span className="w-1.5 h-1.5 bg-ink-400 rounded-full animate-bounce delay-100" />
-                                  <span className="w-1.5 h-1.5 bg-ink-400 rounded-full animate-bounce delay-200" />
-                               </div>
-                            </div>
-                         )}
-                      </div>
-                   )}
-                </div>
-
-                {/* Footer Controls */}
-                <div className="p-4 bg-white border-t border-slate-200 flex flex-col gap-4 shrink-0">
-                   {research.dossier && (
-                      <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 p-3 rounded-lg">
-                         <div className="flex items-center gap-2">
-                            <Check className="w-4 h-4 text-emerald-600" />
-                            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Context Acquired</span>
-                         </div>
-                         <button onClick={handleManualBuild} className="text-xs font-bold bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2">
-                            <Zap className="w-3 h-3" /> Build OS
-                         </button>
-                      </div>
-                   )}
-
-                   {/* Always show text input in TEXT mode OR if we have started chatting */}
-                   {(interactionMode === 'TEXT' || chatHistory.length > 0) && (
-                      <form onSubmit={handleTextSubmit} className="relative">
-                         <input 
-                           value={textInput}
-                           onChange={(e) => setTextInput(e.target.value)}
-                           className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-tech-purple focus:ring-1 focus:ring-tech-purple/20 transition-all text-ink-900 placeholder-ink-400"
-                           placeholder="Type your response..."
-                           disabled={isThinking}
-                           autoFocus
-                         />
+                <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
+                   
+                   {/* STEP 1: MODE SELECT */}
+                   {wizardStep === WizardStep.MODE_SELECT && (
+                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
                          <button 
-                           type="submit" 
-                           disabled={!textInput.trim() || isThinking}
-                           className="absolute right-2 top-2 p-1.5 bg-tech-purple text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 transition-colors shadow-sm"
+                           onClick={() => setWizardStep(WizardStep.SEARCH)}
+                           className="group relative p-8 bg-white border border-slate-200 hover:border-tech-purple rounded-3xl text-left hover:shadow-xl transition-all overflow-hidden"
                          >
-                            <Send className="w-4 h-4" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center mb-6 text-tech-purple relative z-10">
+                               <Building2 className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-ink-900 mb-2 relative z-10">Existing Business</h3>
+                            <p className="text-ink-500 text-sm relative z-10">I have an active company. Find my data and optimize my operations.</p>
                          </button>
-                      </form>
+
+                         <button 
+                           onClick={() => setWizardStep(WizardStep.MANUAL)}
+                           className="group relative p-8 bg-white border border-slate-200 hover:border-tech-cyan rounded-3xl text-left hover:shadow-xl transition-all overflow-hidden"
+                         >
+                            <div className="absolute inset-0 bg-gradient-to-br from-cyan-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="w-16 h-16 rounded-2xl bg-cyan-100 flex items-center justify-center mb-6 text-tech-cyan relative z-10">
+                               <Lightbulb className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-ink-900 mb-2 relative z-10">New Idea</h3>
+                            <p className="text-ink-500 text-sm relative z-10">I am building from scratch. Help me structure my team and strategy.</p>
+                         </button>
+                      </motion.div>
                    )}
+
+                   {/* STEP 2: SEARCH */}
+                   {wizardStep === WizardStep.SEARCH && (
+                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-md bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                         <h3 className="text-2xl font-bold text-ink-900 mb-6 text-center">Identify Entity</h3>
+                         <div className="space-y-4">
+                            <div>
+                               <label className="block text-xs font-bold text-ink-500 uppercase mb-2">Business Name</label>
+                               <div className="relative">
+                                  <Building2 className="absolute left-3 top-3 w-5 h-5 text-ink-400" />
+                                  <input 
+                                    autoFocus
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-tech-purple focus:ring-2 focus:ring-tech-purple/20 transition-all text-ink-900"
+                                    placeholder="e.g. Acme Corp"
+                                    value={searchInputs.name}
+                                    onChange={(e) => setSearchInputs({ ...searchInputs, name: e.target.value })}
+                                  />
+                               </div>
+                            </div>
+                            <div>
+                               <label className="block text-xs font-bold text-ink-500 uppercase mb-2">Location</label>
+                               <div className="relative">
+                                  <MapPin className="absolute left-3 top-3 w-5 h-5 text-ink-400" />
+                                  <input 
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-tech-purple focus:ring-2 focus:ring-tech-purple/20 transition-all text-ink-900"
+                                    placeholder="e.g. San Francisco, CA"
+                                    value={searchInputs.location}
+                                    onChange={(e) => setSearchInputs({ ...searchInputs, location: e.target.value })}
+                                  />
+                               </div>
+                            </div>
+                            
+                            <button 
+                              onClick={identifyBusiness}
+                              disabled={isSearching || !searchInputs.name || !searchInputs.location}
+                              className="w-full py-3.5 bg-tech-purple hover:bg-indigo-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all mt-4 disabled:opacity-50"
+                            >
+                               {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                               Find Business
+                            </button>
+                            
+                            <button onClick={() => setWizardStep(WizardStep.MANUAL)} className="w-full py-2 text-xs text-ink-400 hover:text-ink-600 transition-colors">
+                               Skip to manual entry
+                            </button>
+                         </div>
+                      </motion.div>
+                   )}
+
+                   {/* STEP 3: CONFIRM */}
+                   {wizardStep === WizardStep.CONFIRM && foundEntity && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center">
+                         <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100">
+                            <Check className="w-10 h-10 text-emerald-500" />
+                         </div>
+                         <h3 className="text-2xl font-bold text-ink-900 mb-2">{foundEntity.name}</h3>
+                         <div className="flex items-center justify-center gap-2 text-sm text-ink-500 mb-6">
+                            <MapPin className="w-4 h-4" /> {foundEntity.location}
+                         </div>
+                         
+                         <div className="bg-slate-50 p-4 rounded-xl text-sm text-ink-600 mb-8 border border-slate-100 italic">
+                            "{foundEntity.description}"
+                         </div>
+
+                         <div className="flex gap-4">
+                            <button 
+                              onClick={() => setWizardStep(WizardStep.MANUAL)}
+                              className="flex-1 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-ink-900 rounded-xl font-bold transition-colors"
+                            >
+                               No, that's wrong
+                            </button>
+                            <button 
+                              onClick={() => handleBuildOS(foundEntity)}
+                              className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                            >
+                               Confirm Entity
+                            </button>
+                         </div>
+                      </motion.div>
+                   )}
+
+                   {/* STEP 4: MANUAL */}
+                   {wizardStep === WizardStep.MANUAL && (
+                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-lg bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                         <h3 className="text-2xl font-bold text-ink-900 mb-6 text-center">Business Profile</h3>
+                         <div className="space-y-4">
+                            <div>
+                               <label className="block text-xs font-bold text-ink-500 uppercase mb-2">Venture Name</label>
+                               <div className="relative">
+                                  <Rocket className="absolute left-3 top-3 w-5 h-5 text-ink-400" />
+                                  <input 
+                                    autoFocus
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-tech-purple focus:ring-2 focus:ring-tech-purple/20 transition-all text-ink-900"
+                                    placeholder="e.g. NextGen AI"
+                                    value={manualInputs.name}
+                                    onChange={(e) => setManualInputs({ ...manualInputs, name: e.target.value })}
+                                  />
+                               </div>
+                            </div>
+                            <div>
+                               <label className="block text-xs font-bold text-ink-500 uppercase mb-2">Industry</label>
+                               <div className="relative">
+                                  <Briefcase className="absolute left-3 top-3 w-5 h-5 text-ink-400" />
+                                  <input 
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-tech-purple focus:ring-2 focus:ring-tech-purple/20 transition-all text-ink-900"
+                                    placeholder="e.g. SaaS, Retail, BioTech"
+                                    value={manualInputs.industry}
+                                    onChange={(e) => setManualInputs({ ...manualInputs, industry: e.target.value })}
+                                  />
+                               </div>
+                            </div>
+                            <div>
+                               <label className="block text-xs font-bold text-ink-500 uppercase mb-2">Description</label>
+                               <textarea 
+                                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-tech-purple focus:ring-2 focus:ring-tech-purple/20 transition-all text-ink-900 h-24 resize-none"
+                                 placeholder="We help companies automate X using Y..."
+                                 value={manualInputs.description}
+                                 onChange={(e) => setManualInputs({ ...manualInputs, description: e.target.value })}
+                               />
+                            </div>
+                            
+                            <button 
+                              onClick={() => handleBuildOS({ 
+                                 name: manualInputs.name, 
+                                 industry: manualInputs.industry, 
+                                 description: manualInputs.description, 
+                                 founders: [], 
+                                 coreProduct: 'Idea' 
+                              })}
+                              disabled={!manualInputs.name || !manualInputs.industry}
+                              className="w-full py-3.5 bg-tech-purple hover:bg-indigo-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all mt-4 disabled:opacity-50"
+                            >
+                               <Zap className="w-5 h-5" />
+                               Initialize OS
+                            </button>
+                         </div>
+                      </motion.div>
+                   )}
+
                 </div>
              </GlassPane>
           </motion.div>
@@ -385,10 +470,15 @@ export const ContextEngine: React.FC = () => {
 
         {/* PHASE 3: BUILDING SYSTEM */}
         {phase === Phase.BUILDING && (
-           <SystemBuilder team={team} />
+           <SystemBuilder team={research.dossier ? [] : []} /> // Temporarily pass empty until team is generated
         )}
 
       </AnimatePresence>
     </div>
   );
 };
+
+// Helper Icon for manual inputs
+const Rocket = ({ className }: { className?: string }) => (
+   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+);

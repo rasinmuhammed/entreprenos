@@ -59,6 +59,20 @@ const App: React.FC = () => {
                   isFocusMode ? 'bg-ink-950 text-slate-50' : 
                   'bg-slate-50 text-ink-950';
 
+  // Allow Navigation in Standard Mode OR Deaf Mode (Visual Captions)
+  // This enables the user to use the dashboard tools while having the captions overlay.
+  const showNavigation = context && (accessibilityMode === AccessibilityMode.STANDARD || accessibilityMode === AccessibilityMode.SENTIMENT_HUD);
+
+  const getModeLabel = (mode: AccessibilityMode) => {
+     switch (mode) {
+        case AccessibilityMode.STANDARD: return "Standard";
+        case AccessibilityMode.SONIC_VIEW: return "Screen Reader";
+        case AccessibilityMode.FOCUS_SHIELD: return "Focus Mode";
+        case AccessibilityMode.SENTIMENT_HUD: return "Visual Captions";
+        default: return mode;
+     }
+  };
+
   return (
     <AuthGuard>
       {!hasStartedOnboarding ? (
@@ -88,10 +102,10 @@ const App: React.FC = () => {
           </AnimatePresence>
 
           <div className={`flex-1 flex overflow-hidden relative z-10 transition-opacity duration-300 ${liveState.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
-            {context && accessibilityMode === AccessibilityMode.STANDARD && <Navigation />}
+            {showNavigation && <Navigation />}
             <AnimatePresence><VisionModal /></AnimatePresence>
             
-            <div className={`flex-1 flex flex-col h-full overflow-hidden relative z-10 transition-all duration-500 ${context && accessibilityMode === AccessibilityMode.STANDARD ? 'md:ml-20 mb-20 md:mb-0' : ''}`}>
+            <div className={`flex-1 flex flex-col h-full overflow-hidden relative z-10 transition-all duration-500 ${showNavigation ? 'md:ml-20 mb-20 md:mb-0' : ''}`}>
               
               {/* HEADER */}
               {accessibilityMode !== AccessibilityMode.FOCUS_SHIELD && (
@@ -107,7 +121,7 @@ const App: React.FC = () => {
                   
                   <div className="flex items-center gap-4">
                      <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${isHighContrast ? 'border border-yellow-400 text-yellow-400' : 'bg-white border border-slate-200 shadow-sm text-ink-500'}`}>
-                        <Accessibility className="w-3 h-3" /> {accessibilityMode}
+                        <Accessibility className="w-3 h-3" /> {getModeLabel(accessibilityMode)}
                      </div>
                      <div className={`hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium ${isHighContrast ? 'border border-yellow-400 text-yellow-400' : 'bg-white border border-slate-200 shadow-sm text-ink-500'}`}>
                         <span>{auth.user?.email}</span>
@@ -132,4 +146,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-    

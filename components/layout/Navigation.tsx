@@ -50,7 +50,10 @@ export const Navigation: React.FC = () => {
         </div>
 
         <div className="mt-4 pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">
-           <button className="p-3 rounded-xl text-ink-400 hover:text-ink-900 transition-colors relative group">
+           <button 
+             onClick={() => setView(View.INTEGRATIONS)}
+             className={`p-3 rounded-xl transition-colors relative group ${currentView === View.INTEGRATIONS ? 'bg-indigo-50 text-tech-purple' : 'text-ink-400 hover:text-ink-900'}`}
+           >
               <Database className="w-5 h-5" />
               <div className="absolute left-14 top-2 bg-ink-950 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wide opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 z-50 whitespace-nowrap">
                 Data & Integrations

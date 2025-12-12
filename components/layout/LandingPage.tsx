@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/appStore';
 import { AccessibilityMode } from '../../types';
-import { Volume2, Focus, Eye, Cpu, User, Heart, ArrowRight } from 'lucide-react';
+import { Volume2, Focus, Eye, Cpu, User, Heart, ArrowRight, ArrowLeft } from 'lucide-react';
 import { ContextEngine } from '../modules/ContextEngine';
 
 export const LandingPage: React.FC = () => {
@@ -18,6 +18,10 @@ export const LandingPage: React.FC = () => {
   const handleModeSelect = (mode: AccessibilityMode) => {
     setAccessibilityMode(mode);
     setStep(2);
+  };
+
+  const handleBack = () => {
+    if (step > 0) setStep(step - 1);
   };
 
   const variants = {
@@ -77,7 +81,14 @@ export const LandingPage: React.FC = () => {
         )}
 
         {step === 1 && (
-          <motion.div key="calibration" initial="hidden" animate="visible" exit="exit" variants={variants} className="max-w-6xl w-full z-10 py-12">
+          <motion.div key="calibration" initial="hidden" animate="visible" exit="exit" variants={variants} className="max-w-6xl w-full z-10 py-12 relative">
+            <button 
+               onClick={handleBack}
+               className="absolute top-0 left-0 md:left-8 flex items-center gap-2 text-ink-400 hover:text-ink-900 transition-colors font-bold text-sm"
+            >
+               <ArrowLeft className="w-4 h-4" /> Back to Role
+            </button>
+
             <h2 className="text-4xl md:text-5xl font-bold font-display text-ink-950 mb-4 tracking-tight">Accessibility & Preference</h2>
             <p className="text-ink-500 mb-12 text-lg">Select the mode that best supports how you work.</p>
             
@@ -107,7 +118,7 @@ export const LandingPage: React.FC = () => {
         {step === 2 && (
            <motion.div key="voice-input" initial="hidden" animate="visible" exit="exit" variants={variants} className="w-full h-full py-12">
               <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                 <ContextEngine />
+                 <ContextEngine onBack={handleBack} />
               </div>
            </motion.div>
         )}

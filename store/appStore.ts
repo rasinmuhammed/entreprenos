@@ -442,7 +442,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setTeam: (team) => set({ team }),
 
-  startBoardRoomSession: (topic) => set((state) => ({ boardRoom: { ...state.boardRoom, isActive: true, topic, messages: [] } })),
+  startBoardRoomSession: (topic) => set((state) => ({ 
+    currentView: View.BOARDROOM, // Auto-switch to Boardroom view
+    boardRoom: { ...state.boardRoom, isActive: true, topic, messages: [] } 
+  })),
   setBoardRoomThinking: (thinking) => set((state) => ({ boardRoom: { ...state.boardRoom, isThinking: thinking } })),
   setBoardRoomConsensus: (consensus) => set((state) => ({ boardRoom: { ...state.boardRoom, consensus } })),
   addBoardRoomMessage: (msg) => set((state) => ({ boardRoom: { ...state.boardRoom, messages: [...state.boardRoom.messages, msg] } })),
