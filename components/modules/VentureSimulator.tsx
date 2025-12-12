@@ -91,6 +91,11 @@ export const VentureSimulator: React.FC = () => {
     );
   }
 
+  // Defensive choice array
+  const currentChoices = simulation.currentEvent?.choices && Array.isArray(simulation.currentEvent.choices) 
+    ? simulation.currentEvent.choices 
+    : [];
+
   return (
     <div className="h-[calc(100vh-6rem)] overflow-hidden flex gap-6 p-6">
       
@@ -130,7 +135,7 @@ export const VentureSimulator: React.FC = () => {
          <div className="flex-1 mt-8 overflow-y-auto custom-scrollbar border-t border-slate-200 pt-4 relative z-10">
              <div className="text-[10px] font-mono text-ink-400 mb-4 font-bold uppercase">EVENT LOG</div>
              <div className="space-y-4">
-               {simulation.history.map((h, i) => (
+               {(simulation.history || []).map((h, i) => (
                  <div key={i} className="text-xs opacity-80 hover:opacity-100 transition-opacity">
                     <div className="text-rose-600 font-bold mb-1">{h.event.title}</div>
                     <div className="text-emerald-600 pl-2 border-l-2 border-slate-200 font-medium">{h.result.outcomeTitle}</div>
@@ -175,7 +180,7 @@ export const VentureSimulator: React.FC = () => {
                     <p className="text-lg text-ink-600 leading-relaxed mb-10 font-medium">{simulation.currentEvent.description}</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                       {simulation.currentEvent.choices.map((choice) => (
+                       {currentChoices.length > 0 ? currentChoices.map((choice) => (
                          <button
                            key={choice.id}
                            onClick={() => handleChoice(choice)}
@@ -193,7 +198,11 @@ export const VentureSimulator: React.FC = () => {
                             <h4 className="text-ink-900 font-bold mb-2 text-sm">{choice.title}</h4>
                             <p className="text-xs text-ink-500 leading-relaxed">{choice.description}</p>
                          </button>
-                       ))}
+                       )) : (
+                         <div className="col-span-3 p-4 text-center text-rose-500 bg-rose-50 border border-rose-200 rounded-lg">
+                            No options available. Crisis imminent.
+                         </div>
+                       )}
                     </div>
                  </GlassPane>
                </motion.div>

@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef } from 'react';
 import { liveBridge } from '../services/geminiLiveBridge';
 import { useAppStore } from '../store/appStore';
@@ -9,13 +8,13 @@ import { scanEnvironment } from '../services/geminiService';
 export const useGeminiLive = () => {
   const { liveState, setAccessibilityMode, accessibilityMode, context, setInventoryAlerts, addOracleAlert } = useAppStore();
   
-  // Refs for timers
+  // Refs for timers & locks
   const silenceTimerRef = useRef<number | null>(null);
   const scanIntervalRef = useRef<number | null>(null);
   const oracleIntervalRef = useRef<number | null>(null);
+  const connectionAttemptRef = useRef(false);
 
   const connect = useCallback(async (persona: 'Standard' | 'Helpful' | 'Direct' = 'Standard') => {
-    // Get current privacy mode from store to inject into initial context
     const currentPrivacy = useAppStore.getState().liveState.privacyMode;
 
     await liveBridge.connect({
@@ -45,18 +44,44 @@ export const useGeminiLive = () => {
 
   // --- FEATURE: 10-SECOND WOW (Auto-Connect for Sonic View) ---
   useEffect(() => {
-    if (accessibilityMode === AccessibilityMode.SONIC_VIEW && !liveState.isConnected) {
-      liveBridge.connect({
-        systemInstruction: `
-          You are the user's eyes and strategic mind.
-          IMMEDIATE ACTIONS:
-          1. Scan the video feed for business-relevant objects (products, documents, competitor logos).
-          2. If detected: "I see [X]. This is significant because [Y]. Here's what we should do: [Z]".
-          3. If nothing: "I'm online. Show me something and I'll analyze it instantly."
-        `,
-        voiceName: 'Kore'
-      });
-    }
+    let timeoutId: any;
+
+    const autoConnect = async () => {
+      // Only connect if in Sonic View, not connected, and not currently trying
+      if (accessibilityMode === AccessibilityMode.SONIC_VIEW && !liveState.isConnected && !connectionAttemptRef.current) {
+        connectionAttemptRef.current = true;
+        
+        try {
+          await liveBridge.connect({
+            systemInstruction: `
+              SYSTEM_MODE: SONIC_VIEW (BLIND USER ACCESSIBILITY).
+              ROLE: Passive Visual Cortex.
+              
+              *** CRITICAL PROTOCOL: SILENCE ***
+              1. YOU MUST REMAIN COMPLETELY SILENT UPON CONNECTION.
+              2. DO NOT SAY "Hello", "I'm listening", or introduce yourself.
+              3. The user has a separate screen reader speaking to them. Speaking now will cause confusion.
+              4. ONLY speak when the user explicitly asks YOU a question (e.g. "What is in front of me?", "Read this document").
+              5. If you see a SAFETY HAZARD (Fire, Fall Risk), you may interrupt.
+            `,
+            voiceName: 'Kore'
+          });
+        } catch (error) {
+          console.error("Sonic View Auto-Connect Failed", error);
+        } finally {
+          // Add a cooldown before allowing another auto-connect attempt to prevent loops
+          timeoutId = setTimeout(() => {
+            connectionAttemptRef.current = false;
+          }, 5000); 
+        }
+      }
+    };
+
+    autoConnect();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [accessibilityMode, liveState.isConnected]);
 
   // --- FEATURE: THE ORACLE (Background Monitoring) ---
@@ -134,7 +159,10 @@ export const useGeminiLive = () => {
           if (alerts.length > 0) {
              setInventoryAlerts(alerts);
              const alertText = alerts.map(a => `${a.item} is ${a.status} at count ${a.currentCount}`).join('. ');
-             liveBridge.sendText(`Alert the user: ${alertText}`);
+             // In Sonic View, we only push alerts if critical to avoid clutter
+             if (alerts.some(a => a.status === 'CRITICAL')) {
+                liveBridge.sendText(`Critical Inventory Alert: ${alertText}`);
+             }
           }
        }
     }, 10000);
@@ -143,15 +171,6 @@ export const useGeminiLive = () => {
       if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
     };
   }, [accessibilityMode, liveState.isConnected, context]);
-
-  // Video Frame Capture Loop for Context (General)
-  useEffect(() => {
-    if (!liveState.isConnected) return;
-    const interval = window.setInterval(() => {
-       // liveBridge.sendVideoFrame(base64);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [liveState.isConnected]);
 
   return {
     connect,

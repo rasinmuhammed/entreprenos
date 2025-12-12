@@ -13,12 +13,13 @@ export const calculateLayout = (context: UIContext): LayoutConfig => {
   const { disabilityProfile, cognitiveMode, currentModule } = context;
 
   // --- DEFAULT LAYOUT (Standard) ---
+  // Updated: Removed embedded 'nav' component to prevent double-sidebar / empty gap issue.
+  // The global App shell handles the sidebar in standard mode.
   const defaultLayout: LayoutConfig = {
     layoutId: 'standard-grid',
     containerClass: 'grid grid-cols-1 md:grid-cols-6 gap-6 p-6 h-full',
     components: [
-      { id: 'nav', type: 'NAVIGATION', props: {} },
-      { id: 'main', type: 'PANEL', props: { className: 'col-span-5 h-full overflow-y-auto' } }
+      { id: 'main', type: 'PANEL', props: { className: 'col-span-1 md:col-span-6 h-full overflow-y-auto' } }
     ]
   };
 
@@ -80,8 +81,7 @@ export const calculateLayout = (context: UIContext): LayoutConfig => {
       layoutId: 'sentiment-hud-overlay',
       containerClass: 'relative h-full grid grid-cols-6 gap-6 p-6',
       components: [
-        { id: 'nav', type: 'NAVIGATION', props: {} },
-        { id: 'main', type: 'PANEL', props: { className: 'col-span-5' } },
+        { id: 'main', type: 'PANEL', props: { className: 'col-span-6' } }, // Full width, nav handled by App shell
         { 
           id: 'sentiment-hud', 
           type: 'HUD_OVERLAY', 

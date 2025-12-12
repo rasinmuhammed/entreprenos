@@ -11,9 +11,12 @@ interface SystemBuilderProps {
 export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
   const [visibleAgents, setVisibleAgents] = useState<AIEmployee[]>([]);
 
+  // Safe access to team array
+  const safeTeam = Array.isArray(team) ? team : [];
+
   useEffect(() => {
-    if (team.length > 0) {
-      team.forEach((agent, index) => {
+    if (safeTeam && safeTeam.length > 0) {
+      safeTeam.forEach((agent, index) => {
         setTimeout(() => {
           setVisibleAgents(prev => {
             if (prev.find(a => a.id === agent.id)) return prev;
@@ -25,7 +28,7 @@ export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
   }, [team]);
 
   return (
-    <div className="relative w-full max-w-5xl h-[600px] flex items-center justify-center overflow-hidden rounded-[3rem] bg-white border border-slate-200 shadow-glass">
+    <div className="relative w-full h-[600px] flex items-center justify-center overflow-hidden rounded-[3rem] bg-white border border-slate-200 shadow-glass">
       
       {/* 1. Organic Background (Executive Blobs) */}
       <div className="absolute inset-0 z-0 opacity-30">
@@ -41,12 +44,12 @@ export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
          />
       </div>
 
-      <div className="flex flex-col items-center w-full z-10 p-8">
+      <div className="flex flex-col items-center w-full z-10 p-8 h-full overflow-y-auto custom-scrollbar">
         
         {/* Status Text */}
-        <div className="mb-12 text-center h-20 flex flex-col items-center justify-center">
+        <div className="mb-8 text-center h-20 flex flex-col items-center justify-center shrink-0">
            <AnimatePresence mode="wait">
-             {visibleAgents.length < team.length && team.length > 0 ? (
+             {visibleAgents.length < safeTeam.length && safeTeam.length > 0 ? (
                 <motion.div 
                   key="assembling"
                   initial={{ opacity: 0, y: 10 }}
@@ -61,7 +64,7 @@ export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
                    </div>
                    <div className="text-ink-600 font-medium text-xl">Recruiting AI Specialists...</div>
                 </motion.div>
-             ) : team.length > 0 ? (
+             ) : safeTeam.length > 0 ? (
                 <motion.div 
                   key="ready"
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -77,16 +80,16 @@ export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
            </AnimatePresence>
         </div>
 
-        {/* Agent Orbs */}
-        <div className="flex flex-wrap justify-center gap-8 w-full max-w-4xl">
+        {/* Agent Grid - Consistent Layout */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full max-w-6xl">
           <AnimatePresence>
-            {team.length === 0 ? (
+            {safeTeam.length === 0 ? (
                // SKELETON LOADING
-               [1,2,3].map(i => (
+               [1,2,3,4].map(i => (
                   <motion.div 
                     key={`skel-${i}`} 
                     exit={{ opacity: 0, scale: 0.8 }} 
-                    className="w-32 h-32 rounded-full bg-slate-50 border border-slate-100 shadow-sm animate-pulse"
+                    className="h-64 rounded-3xl bg-slate-50 border border-slate-100 shadow-sm animate-pulse"
                   />
                ))
             ) : (
@@ -97,20 +100,20 @@ export const SystemBuilder: React.FC<SystemBuilderProps> = ({ team }) => {
                    initial={{ opacity: 0, scale: 0.5, y: 50 }}
                    animate={{ opacity: 1, scale: 1, y: 0 }}
                    transition={{ type: "spring", stiffness: 100, damping: 20, delay: i * 0.1 }}
-                   className="relative group"
+                   className="relative group h-full"
                  >
                    {/* Agent Card */}
-                   <div className="w-48 p-6 bg-white border border-slate-200 rounded-3xl flex flex-col items-center text-center shadow-glass hover:shadow-xl hover:border-tech-purple/30 hover:-translate-y-1 transition-all duration-500">
+                   <div className="h-64 p-6 bg-white border border-slate-200 rounded-3xl flex flex-col items-center text-center shadow-glass hover:shadow-xl hover:border-tech-purple/30 hover:-translate-y-1 transition-all duration-500">
                       
                       {/* Avatar */}
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 mb-4 flex items-center justify-center text-tech-purple font-bold text-2xl relative overflow-hidden group-hover:scale-110 transition-transform">
-                         {agent.name[0]}
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 mb-4 flex items-center justify-center text-tech-purple font-bold text-xl relative overflow-hidden group-hover:scale-110 transition-transform shrink-0">
+                         {agent.name ? agent.name[0] : '?'}
                       </div>
                       
-                      <div className="text-ink-900 font-bold text-sm mb-1">{agent.role}</div>
-                      <div className="text-ink-500 text-xs mb-3">{agent.name}</div>
+                      <div className="text-ink-900 font-bold text-sm mb-1 line-clamp-1">{agent.role}</div>
+                      <div className="text-ink-500 text-xs mb-3 line-clamp-1">{agent.name}</div>
                       
-                      <div className="w-full pt-3 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[10px] text-tech-purple font-bold uppercase tracking-wide">
+                      <div className="w-full pt-3 mt-auto border-t border-slate-100 flex items-center justify-center gap-1.5 text-[10px] text-tech-purple font-bold uppercase tracking-wide">
                          <Sparkles className="w-3 h-3 fill-current" />
                          Active
                       </div>

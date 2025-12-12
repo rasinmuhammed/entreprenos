@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, MessageSquare } from 'lucide-react';
+import { Mic, MicOff, MessageSquare, Ear } from 'lucide-react';
 
 export const SentimentHUD: React.FC = () => {
   const { sentimentStream, liveState } = useAppStore();
@@ -36,6 +36,15 @@ export const SentimentHUD: React.FC = () => {
       </div>
 
       <div className="h-full flex flex-col justify-end p-8 pb-20 max-w-4xl mx-auto space-y-6">
+         {/* Accessibility Instructions */}
+         {sentimentStream.length === 0 && (
+            <div className="text-center text-white/50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <Ear className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-xl font-bold mb-2">Visual Captions Active</h3>
+                <p className="max-w-md">This mode visualizes spoken conversation tone and transcribes speech for Deaf or Hard-of-Hearing users. Enable the microphone to begin.</p>
+            </div>
+         )}
+
          <AnimatePresence>
             {sentimentStream.map((frame) => (
                <motion.div
@@ -67,14 +76,14 @@ export const SentimentHUD: React.FC = () => {
                  className="absolute bottom-32 left-1/2 -translate-x-1/2"
                >
                   <div className="px-6 py-3 bg-white text-black font-bold rounded-full shadow-glow animate-bounce flex items-center gap-2">
-                     <Mic className="w-5 h-5" /> SPEAK NOW
+                     <Mic className="w-5 h-5" /> Waiting for speech...
                   </div>
                </motion.div>
             )}
          </AnimatePresence>
 
          <div className="absolute bottom-8 left-0 right-0 flex justify-center text-white/30 text-sm font-mono">
-            {liveState.isConnected ? "LISTENING..." : "OFFLINE"}
+            {liveState.isConnected ? "MICROPHONE ACTIVE - VISUALIZING AUDIO" : "MICROPHONE OFF"}
          </div>
       </div>
     </div>

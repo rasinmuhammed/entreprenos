@@ -1,13 +1,16 @@
+
 import React from 'react';
 import { WidgetData } from '../../types';
 import { DynamicWidget } from '../modules/DynamicWidget';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const GoldenGrid: React.FC<{ widgets: WidgetData[] }> = ({ widgets }) => {
-  if (!widgets || !widgets.length) return null;
+  // Defensive check: ensure widgets is an array
+  if (!widgets || !Array.isArray(widgets) || widgets.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-6 gap-6 w-full max-w-7xl mx-auto p-6 auto-rows-[minmax(180px,auto)]">
+    // Removed 'max-w-7xl mx-auto' to allow full-width filling of the panel
+    <div className="grid grid-cols-1 md:grid-cols-6 gap-6 w-full p-6 auto-rows-[minmax(180px,auto)]">
       {/* 
          The layout strategy attempts to approximate 1:1.618 visually using grid spans.
          The first item is the "Hero" (3x2 or 4x2).

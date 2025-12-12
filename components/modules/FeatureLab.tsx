@@ -44,13 +44,13 @@ export const FeatureLab: React.FC = () => {
     return (
       <div className="h-full flex items-center justify-center p-12">
         <SearchVisualizer 
-          query={`R&D Lab: ${context?.businessName}`} 
+          query={`Researching Features for: ${context?.businessName}`} 
           steps={[
-            "Scanning competitive landscape for feature gaps...",
-            "Analyzing customer friction points...",
-            "Applying RICE scoring framework...",
-            "Simulating implementation pathways...",
-            "Calculating potential ROI..."
+            "Analyzing market gaps...",
+            "Reviewing customer feedback...",
+            "Scoring feasibility...",
+            "Drafting implementation plans...",
+            "Calculating ROI..."
           ]} 
         />
       </div>
@@ -64,19 +64,18 @@ export const FeatureLab: React.FC = () => {
         <div className="h-full flex flex-col items-center justify-center p-8 text-center">
            <div className="w-24 h-24 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-6 shadow-sm relative">
              <FlaskConical className="w-12 h-12 text-tech-purple" />
-             <div className="absolute inset-0 border border-indigo-200 rounded-full animate-pulse opacity-50" />
            </div>
-           <h2 className="text-3xl font-bold text-ink-900 mb-4 tracking-tight">Innovation Lab</h2>
+           <h2 className="text-3xl font-bold text-ink-900 mb-4 tracking-tight">Feature Research Lab</h2>
            <p className="text-ink-500 max-w-md mb-8 leading-relaxed font-medium">
-             Initiate a rigorous R&D protocol to uncover high-impact features. 
-             We use the RICE framework (Reach, Impact, Confidence, Effort) to score every idea.
+             Generate high-impact feature ideas based on your business context. 
+             We analyze feasibility, impact, and effort for every suggestion.
            </p>
            <button 
              onClick={handleDeepScan}
              className="px-8 py-4 bg-tech-purple hover:bg-indigo-600 text-white rounded-xl font-bold tracking-wide flex items-center gap-3 transition-all hover:scale-105 shadow-xl shadow-indigo-500/20"
            >
              <Sparkles className="w-5 h-5" />
-             Begin Feature Discovery
+             Start Research
            </button>
         </div>
      );
@@ -91,7 +90,7 @@ export const FeatureLab: React.FC = () => {
              <div className="p-2 bg-indigo-100 rounded-lg">
                 <FlaskConical className="w-5 h-5 text-tech-purple" />
              </div>
-             <h2 className="font-bold tracking-wide text-ink-900">R&D Pipeline</h2>
+             <h2 className="font-bold tracking-wide text-ink-900">Feature Ideas</h2>
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3">
@@ -114,7 +113,7 @@ export const FeatureLab: React.FC = () => {
                          proposal.riceScore >= 80 ? 'bg-emerald-100 text-emerald-700' :
                          proposal.riceScore >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
                       }`}>
-                         RICE: {proposal.riceScore}
+                         Score: {proposal.riceScore}
                       </span>
                    </div>
                    <div className="text-xs text-ink-400 truncate font-medium">{proposal.tagline}</div>
@@ -127,7 +126,7 @@ export const FeatureLab: React.FC = () => {
                onClick={handleDeepScan}
                className="w-full py-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs text-ink-500 hover:text-ink-900 transition-colors flex items-center justify-center gap-2 font-bold"
              >
-                <RefreshCw className="w-3 h-3" /> Re-Scan Market
+                <RefreshCw className="w-3 h-3" /> Refresh Research
              </button>
           </div>
        </GlassPane>
@@ -146,7 +145,7 @@ export const FeatureLab: React.FC = () => {
                       <div className="text-5xl font-mono font-bold text-ink-900 tracking-tighter">
                          {activeProposal.riceScore}
                       </div>
-                      <div className="text-[10px] text-ink-400 uppercase font-mono tracking-widest mt-1 font-bold">RICE Score</div>
+                      <div className="text-[10px] text-ink-400 uppercase font-mono tracking-widest mt-1 font-bold">Priority Score</div>
                    </div>
                 </div>
 
@@ -169,23 +168,27 @@ export const FeatureLab: React.FC = () => {
 
                 <div className="space-y-8">
                    <section>
-                      <h3 className="text-sm font-bold text-ink-400 uppercase tracking-widest mb-4">Strategic Rationale</h3>
+                      <h3 className="text-sm font-bold text-ink-400 uppercase tracking-widest mb-4">Description</h3>
                       <p className="text-ink-800 leading-relaxed text-lg font-medium">
                          {activeProposal.description}
                       </p>
                    </section>
 
                    <section>
-                      <h3 className="text-sm font-bold text-ink-400 uppercase tracking-widest mb-4">Implementation Protocol</h3>
+                      <h3 className="text-sm font-bold text-ink-400 uppercase tracking-widest mb-4">Implementation Steps</h3>
                       <div className="space-y-3">
-                         {activeProposal.implementationSteps.map((step, i) => (
-                            <div key={i} className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                               <div className="w-6 h-6 rounded-full bg-tech-purple text-white flex items-center justify-center text-xs font-bold shrink-0">
-                                  {i + 1}
-                               </div>
-                               <div className="text-ink-700 font-medium">{step}</div>
-                            </div>
-                         ))}
+                         {activeProposal.implementationSteps && activeProposal.implementationSteps.length > 0 ? (
+                            activeProposal.implementationSteps.map((step, i) => (
+                                <div key={i} className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                   <div className="w-6 h-6 rounded-full bg-tech-purple text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                      {i + 1}
+                                   </div>
+                                   <div className="text-ink-700 font-medium">{step}</div>
+                                </div>
+                            ))
+                         ) : (
+                            <div className="text-ink-400 italic">No implementation steps generated.</div>
+                         )}
                       </div>
                    </section>
                 </div>
@@ -194,10 +197,10 @@ export const FeatureLab: React.FC = () => {
              {/* Footer Actions */}
              <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-4 shrink-0">
                 <button className="px-6 py-3 rounded-xl border border-slate-200 hover:bg-white text-ink-500 hover:text-ink-900 transition-colors font-bold text-sm bg-white shadow-sm">
-                   Save for Later
+                   Save Draft
                 </button>
                 <button className="px-8 py-3 bg-tech-purple hover:bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-500/20 text-sm">
-                   <Rocket className="w-4 h-4" /> Launch Project
+                   <Rocket className="w-4 h-4" /> Start Project
                 </button>
              </div>
           </GlassPane>

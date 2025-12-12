@@ -93,8 +93,8 @@ const extractJSON = async (text: string, attempt = 1): Promise<any> => {
              gridArea: "span 1 / span 2"
           },
           {
-             id: "safety-net-2",
-             type: "ALERT_PANEL",
+             id: "safety-net-2", 
+             type: "ALERT_PANEL", 
              title: "Operational Alert",
              content: { severity: "low", message: "Supply chain optimization recommended based on recent data." },
              gridArea: "span 1 / span 2"
@@ -295,63 +295,132 @@ export const chatWithGenesisArchitect = async (
     return { text: "", toolCalls: [] };
   }
 
-  // Tool definition specifically for the interview process
   const updateBusinessContextTool: FunctionDeclaration = {
     name: 'update_business_context',
-    description: 'Update the business dossier with information gathered during the interview. Call this whenever the user provides specific details about their business.',
+    description: 'Update the business dossier. Call this when you learn the Name, Industry, Location, or other key details.',
     parameters: {
       type: Type.OBJECT,
       properties: {
-        industry: { type: Type.STRING, description: 'Industry type (e.g. Retail, SaaS)' },
+        name: { type: Type.STRING, description: 'The official name of the business.' },
+        industry: { type: Type.STRING, description: 'Industry type (e.g. Retail, SaaS, Food)' },
+        description: { type: Type.STRING, description: 'Brief description of the business activity.' },
         revenueModel: { type: Type.STRING, description: 'How they make money (e.g. Subscription, Transactional)' },
         targetAudience: { type: Type.STRING, description: 'Who they sell to' },
         differentiator: { type: Type.STRING, description: 'Unique selling point' },
         bottleneck: { type: Type.STRING, description: 'Current biggest challenge' },
-        location: { type: Type.STRING, description: 'Business location' }
+        location: { type: Type.STRING, description: 'Business location (City, Region)' }
       }
     }
   };
 
   try {
-    // RIGOROUS SANITIZATION for ContentUnion errors
-    const cleanHistory = history.map(h => {
-      // 1. Normalize role to strictly 'user' or 'model'
-      const role = (h.role === 'ai' || h.role === 'model') ? 'model' : 'user';
+    // 1. Strict History Sanitization (Fix undefined map error)
+    const cleanHistory = (history || []).map(h => ({
+      role: (h.role === 'ai' || h.role === 'model') ? 'model' : 'user',
+      parts: (h.parts || []).map(p => ({ text: p.text || " " })) 
+    }));
+
+    // 2. Initialize current conversation state
+    let contents: any[] = [
+      ...cleanHistory,
+      { role: 'user', parts: [{ text: userInput }] }
+    ];
+
+    let finalToolCalls: any[] = [];
+    let loopCount = 0;
+    const MAX_LOOPS = 3;
+
+    // 3. MULTI-TURN LOOP
+    while (loopCount < MAX_LOOPS) {
       
-      // 2. Ensure parts are strictly formatted as [{ text: "..." }]
-      const validParts = (h.parts && h.parts.length > 0) 
-        ? h.parts.map(p => ({ text: p.text || " " })) // Fallback to space if text is missing
-        : [{ text: " " }];
-
-      return { role, parts: validParts };
-    });
-
-    const chat = ai.chats.create({
-      model: 'gemini-2.5-flash',
-      // CRITICAL FIX: Use 'messages' instead of 'history' for SDK compatibility
-      messages: cleanHistory as any, 
-      config: {
-         // Explicitly format systemInstruction to avoid validation errors
-         systemInstruction: {
-           parts: [{ text: `
-             ROLE: Genesis Architect. 
-             GOAL: Interview the user to build EntreprenOS.
-             TONE: Professional, Inquisitive, Efficient.
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: contents as any, 
+        config: {
+           systemInstruction: `
+             ROLE: Genesis Architect.
+             GOAL: Build a comprehensive Business Dossier for EntreprenOS.
              
-             TASK:
-             Ask 1 question at a time to gather: Industry, Revenue Model, Target Audience, Key Differentiator, Current Bottleneck, Location.
+             PHASE 1: DISCOVERY & IDENTIFICATION
              
-             When you identify any of these, call the 'update_business_context' tool IMMEDIATELY.
-             Keep responses short (under 2 sentences).
-           ` }]
-         },
-         tools: [{ functionDeclarations: [updateBusinessContextTool] }]
+             RULE: "EXISTING BUSINESS" AUTOMATION
+             If the user says they are an EXISTING business and provides a Name and Location:
+             1. DO NOT ask for Industry, Audience, or Revenue Model separately if you can infer them.
+             2. INFER the likely Industry, Revenue Model, and Audience based on the business name and typical patterns for that type of business.
+             3. CALL 'update_business_context' IMMEDIATELY with the Name, Location, AND these inferred values.
+             4. Then, say: "I've located [Name] in [Location]. I assume you're in the [Industry] space serving [Audience]? Is that correct?"
+             
+             PHASE 2: DEEP DIVE (Only if context is established)
+             - If context is set, ask about their current Bottleneck or Goal.
+             
+             GENERAL RULES:
+             - Be efficient. Don't ask questions you can answer yourself via inference.
+             - Ask only 1 question at a time.
+             - Always confirm your inferences.
+           `,
+           tools: [{ functionDeclarations: [updateBusinessContextTool] }]
+        }
+      });
+
+      const candidate = response.candidates?.[0];
+      const content = candidate?.content;
+      
+      if (!content) break;
+
+      const textPart = content.parts?.find(p => p.text);
+      const functionCallPart = content.parts?.find(p => p.functionCall);
+
+      // If we got text, we are done (or if we have text AND tool, we prioritize returning text for the UI)
+      if (textPart && textPart.text) {
+         if (functionCallPart && functionCallPart.functionCall) {
+            finalToolCalls.push({
+               name: functionCallPart.functionCall.name,
+               args: functionCallPart.functionCall.args,
+               id: 'fc_' + Math.random().toString(36).substr(2, 9)
+            });
+         }
+         return { 
+            text: textPart.text, 
+            toolCalls: finalToolCalls 
+         };
       }
-    });
 
-    // Explicitly wrap user input in a part array
-    const result = await chat.sendMessage([{ text: userInput }]);
-    return { text: result.response.text || "", toolCalls: result.response.functionCalls };
+      // If ONLY function call, we must loop to get text
+      if (functionCallPart && functionCallPart.functionCall) {
+         const fc = functionCallPart.functionCall;
+         
+         finalToolCalls.push({
+            name: fc.name,
+            args: fc.args,
+            id: 'fc_' + Math.random().toString(36).substr(2, 9)
+         });
+
+         // Add the tool call to history
+         contents.push({
+            role: 'model',
+            parts: [{ functionCall: fc }]
+         });
+
+         // Add the tool response (Mock success)
+         contents.push({
+            role: 'user',
+            parts: [{
+               functionResponse: {
+                  name: fc.name,
+                  response: { result: "Context updated. Proceed with confirmation message." }
+               }
+            }]
+         });
+
+         loopCount++;
+         continue;
+      }
+
+      break;
+    }
+
+    return { text: "I've updated your business profile. What is your primary goal right now?", toolCalls: finalToolCalls };
+
   } catch (e) {
     console.error("Genesis Chat Error", e);
     return { text: "I'm having trouble connecting to the neural network. Please try again.", toolCalls: [] };
@@ -655,7 +724,6 @@ export const generateMicroTaskPlan = async (taskTitle: string, context: string):
     ROLE: Executive Function Coach for ADHD Founders.
     TASK: Break "${taskTitle}" into atomic, gamified micro-steps.
     USER CONTEXT: ${context}
-    
     RULES:
     1. First step must be trivial (< 2 min) to break inertia (e.g. "Open laptop", "Sit down").
     2. Add 'dependencies' only if strictly necessary.
@@ -705,7 +773,7 @@ export const askOmniStrategist = async (query: string, imageContext: string | nu
     if (imageContext) {
       contents.unshift({ inlineData: { mimeType: "image/jpeg", data: imageContext } });
     }
-
+    
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: contents,
@@ -723,15 +791,15 @@ export const askOmniStrategist = async (query: string, imageContext: string | nu
 export const analyzeGoogleReviews = async (context: BusinessContext): Promise<{ 
   reviews: any[], 
   summary: string, 
-  averageRating: number,
-  commonThemes: string[],
-  areasForImprovement: string[]
+  averageRating: number, 
+  commonThemes: string[], 
+  areasForImprovement: string[] 
 }> => {
   const ai = getClient();
   const prompt = `
     ROLE: Reputation Manager.
     CONTEXT: ${context.businessName}, ${context.location}.
-    TASK: 
+    TASK:
     1. Simulate finding 5 recent Google Reviews.
     2. Analyze sentiment.
     3. Generate summary, themes, and improvements.
@@ -761,14 +829,8 @@ export const analyzeGoogleReviews = async (context: BusinessContext): Promise<{
 // --- LOCAL INTEL: SHOP BOARD CHAT ---
 export const chatWithShopBoard = async (message: string, context: BusinessContext, history: any[]): Promise<string> => {
   const ai = getClient();
-  const prompt = `
-    ROLE: You are the "Board of Directors of the Shop" (Landlord, Shopkeeper, Marketer).
-    CONTEXT: ${context.businessName} in ${context.location}.
-    USER MESSAGE: "${message}"
-    HISTORY: ${JSON.stringify(history.slice(-3))}
-    INSTRUCTION: Answer as a local veteran. Practical advice.
-  `;
-
+  const prompt = `ROLE: You are the "Board of Directors of the Shop" (Landlord, Shopkeeper, Marketer). CONTEXT: ${context.businessName} in ${context.location}. USER MESSAGE: "${message}" HISTORY: ${JSON.stringify(history.slice(-3))} INSTRUCTION: Answer as a local veteran. Practical advice.`;
+  
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -781,7 +843,6 @@ export const chatWithShopBoard = async (message: string, context: BusinessContex
 };
 
 // --- LEAD INTERCEPTOR ---
-
 export const simulateIncomingLead = async (context: BusinessContext): Promise<Lead> => {
   const ai = getClient();
   const prompt = `
@@ -807,7 +868,7 @@ export const simulateIncomingLead = async (context: BusinessContext): Promise<Le
     const data = await extractJSON(response.text);
     
     if (!data) throw new Error("Failed to simulate lead");
-
+    
     const lead: Lead = {
       id: Math.random().toString(),
       name: data.sender || "Unknown Customer",
@@ -821,43 +882,42 @@ export const simulateIncomingLead = async (context: BusinessContext): Promise<Le
       intent: (data.intent as any) || 'INQUIRY'
     };
     return lead;
-
   } catch (e) {
-    return {
-       id: Math.random().toString(),
-       name: "Rajesh Kumar",
-       channel: "WHATSAPP",
-       status: 'NEW',
-       lastMessage: "Hi, are you open?",
-       timestamp: Date.now(),
-       history: [{ id: Math.random().toString(), sender: 'customer', text: "Hi, are you open?", timestamp: Date.now() }],
-       intent: 'INQUIRY'
+    return { 
+      id: Math.random().toString(), 
+      name: "Rajesh Kumar", 
+      channel: "WHATSAPP", 
+      status: 'NEW', 
+      lastMessage: "Hi, are you open?", 
+      timestamp: Date.now(), 
+      history: [{ id: Math.random().toString(), sender: 'customer', text: "Hi, are you open?", timestamp: Date.now() }],
+      intent: 'INQUIRY'
     };
   }
 };
 
-export const processLeadMessage = async (lead: Lead, context: BusinessContext, template: string): Promise<{
-   reply: string;
-   autoResponded: boolean;
-   newStatus: LeadStatus;
+export const processLeadMessage = async (lead: Lead, context: BusinessContext, template: string): Promise<{ 
+  reply: string; 
+  autoResponded: boolean; 
+  newStatus: LeadStatus;
 }> => {
-   const ai = getClient();
-   const prompt = `
-     ROLE: Sales AI.
-     CONTEXT: "${context.businessName}".
-     TEMPLATE: "${template}"
-     MSG: "${lead.lastMessage}"
-     INTENT: ${lead.intent}
-     
+  const ai = getClient();
+  const prompt = `
+    ROLE: Sales AI.
+    CONTEXT: "${context.businessName}".
+    TEMPLATE: "${template}"
+    MSG: "${lead.lastMessage}"
+    INTENT: ${lead.intent}
+    
      OUTPUT JSON:
      {
        "autoResponded": boolean,
        "reply": "Message",
        "newStatus": "AUTO_RESPONDED | REQUIRES_ACTION | CONVERTED"
      }
-   `;
+  `;
 
-   try {
+  try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -865,22 +925,16 @@ export const processLeadMessage = async (lead: Lead, context: BusinessContext, t
     });
     const data = await extractJSON(response.text);
     return data || { reply: "I'll check.", autoResponded: false, newStatus: 'REQUIRES_ACTION' };
-   } catch (e) {
-     return { reply: "Error.", autoResponded: false, newStatus: 'REQUIRES_ACTION' };
-   }
+  } catch (e) {
+    return { reply: "Error.", autoResponded: false, newStatus: 'REQUIRES_ACTION' };
+  }
 };
 
 // --- FEATURE LAB (R&D) ---
-
 export const researchStrategicFeatures = async (context: BusinessContext): Promise<FeatureProposal[]> => {
   const ai = getClient();
-  const prompt = `
-    ROLE: Chief Product Officer.
-    CONTEXT: ${context.businessName} (${context.industry}).
-    TASK: RICE framework analysis for 3 feature ideas.
-    OUTPUT JSON ARRAY: [ { "title": "...", "riceScore": 85, ... } ]
-  `;
-
+  const prompt = `ROLE: Chief Product Officer. CONTEXT: ${context.businessName} (${context.industry}). TASK: RICE framework analysis for 3 feature ideas. OUTPUT JSON ARRAY: [ { "title": "...", "riceScore": 85, ... } ]`;
+  
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -895,19 +949,18 @@ export const researchStrategicFeatures = async (context: BusinessContext): Promi
 };
 
 // --- ON-THE-SPOT UI FIXING ---
-
 export const transformToGenerativeUI = async (widgetData: WidgetData): Promise<GenUIElement> => {
   const ai = getClient();
   const prompt = `Convert widget data to GenUI JSON schema. DATA: ${JSON.stringify(widgetData)}`;
   try {
-     const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: { responseMimeType: 'application/json' }
-     });
-     return (await extractJSON(response.text)) || { id: "error", type: 'text', props: { content: 'Error' } };
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: { responseMimeType: 'application/json' }
+    });
+    return (await extractJSON(response.text)) || { id: "error", type: 'text', props: { content: 'Error' } };
   } catch (e) {
-     return { id: "error", type: 'text', props: { content: 'Error' } };
+    return { id: "error", type: 'text', props: { content: 'Error' } };
   }
 };
 
@@ -915,13 +968,13 @@ export const refineGenerativeUI = async (currentSchema: GenUIElement, userInstru
   const ai = getClient();
   const prompt = `Modify UI Schema based on instruction: "${userInstruction}". SCHEMA: ${JSON.stringify(currentSchema)}`;
   try {
-     const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: { responseMimeType: 'application/json' }
-     });
-     return (await extractJSON(response.text)) || currentSchema;
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: { responseMimeType: 'application/json' }
+    });
+    return (await extractJSON(response.text)) || currentSchema;
   } catch (e) {
-     return currentSchema;
+    return currentSchema;
   }
 };

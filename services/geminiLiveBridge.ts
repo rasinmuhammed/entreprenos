@@ -100,7 +100,7 @@ class GeminiLiveBridge {
           },
           onerror: (err) => {
             console.error("[LiveBridge] Error", err);
-            store.setLiveState({ isConnected: false });
+            store.setLiveState({ isConnected: false, isThinking: false });
             this.cleanup();
           }
         },
@@ -136,6 +136,7 @@ class GeminiLiveBridge {
       console.error("[LiveBridge] Connection Failed", error);
       store.setLiveState({ isConnected: false });
       this.cleanup();
+      throw error; // Re-throw to let hook know it failed
     }
   }
 

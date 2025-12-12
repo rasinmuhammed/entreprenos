@@ -9,6 +9,7 @@ export const GenerativeWidget: React.FC<{ schema: GenUIElement }> = ({ schema })
   if (!schema) return null;
 
   const renderElement = (el: GenUIElement, idx: number) => {
+    if (!el) return null;
     switch (el.type) {
       case 'layout':
         return <RenderLayout key={el.id || idx} el={el} index={idx} />;
@@ -45,11 +46,14 @@ const RenderLayout: React.FC<{ el: GenUIElement, index: number }> = ({ el, index
   const direction = el.props?.direction === 'row' ? 'flex-row' : 'flex-col';
   const gap = el.props?.gap ? `gap-${el.props.gap}` : 'gap-6';
   const align = el.props?.align === 'center' ? 'items-center' : 'items-stretch';
+  
+  // Defensive check for children
+  const children = Array.isArray(el.children) ? el.children : [];
 
   if (isGrid) {
     return (
       <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 w-full`}>
-        {el.children?.map((child, i) => (
+        {children.map((child, i) => (
           <div key={i} className="h-full">
              <RenderChildWrapper child={child} index={i} />
           </div>
@@ -60,7 +64,7 @@ const RenderLayout: React.FC<{ el: GenUIElement, index: number }> = ({ el, index
 
   return (
     <div className={`flex ${direction} ${gap} ${align} w-full h-full`}>
-      {el.children?.map((child, i) => (
+      {children.map((child, i) => (
         <RenderChildWrapper key={i} child={child} index={i} />
       ))}
     </div>
@@ -68,6 +72,7 @@ const RenderLayout: React.FC<{ el: GenUIElement, index: number }> = ({ el, index
 };
 
 const RenderChildWrapper: React.FC<{ child: GenUIElement, index: number }> = ({ child, index }) => {
+  if (!child) return null;
   switch (child.type) {
     case 'layout': return <RenderLayout el={child} index={index} />;
     case 'card': return <RenderCard el={child} index={index} />;
@@ -82,6 +87,7 @@ const RenderChildWrapper: React.FC<{ child: GenUIElement, index: number }> = ({ 
 };
 
 const RenderCard: React.FC<{ el: GenUIElement, index: number }> = ({ el, index }) => {
+  const children = Array.isArray(el.children) ? el.children : [];
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -89,7 +95,7 @@ const RenderCard: React.FC<{ el: GenUIElement, index: number }> = ({ el, index }
       transition={{ delay: index * 0.1 }}
       className="p-5 bg-slate-50 border border-slate-200 rounded-xl w-full h-full hover:border-slate-300 transition-colors flex flex-col gap-4 relative overflow-hidden group shadow-sm"
     >
-      {el.children?.map((child, i) => (
+      {children.map((child, i) => (
         <RenderChildWrapper key={i} child={child} index={i} />
       ))}
     </motion.div>
@@ -157,7 +163,7 @@ const RenderMetric: React.FC<{ el: GenUIElement, index: number }> = ({ el, index
 };
 
 const RenderChart: React.FC<{ el: GenUIElement, index: number }> = ({ el, index }) => {
-  const data = el.props?.data || [40, 60, 45, 70, 55, 80, 65];
+  const data = Array.isArray(el.props?.data) ? el.props.data : [40, 60, 45, 70, 55, 80, 65];
   const color = el.props?.color === 'purple' ? '#6366F1' : el.props?.color === 'emerald' ? '#10B981' : '#06B6D4';
   const max = Math.max(...data);
   
@@ -210,7 +216,7 @@ const RenderChart: React.FC<{ el: GenUIElement, index: number }> = ({ el, index 
 };
 
 const RenderList: React.FC<{ el: GenUIElement }> = ({ el }) => {
-  const items = el.props?.items || [];
+  const items = Array.isArray(el.props?.items) ? el.props.items : [];
   
   return (
     <div className="space-y-3 mt-2">

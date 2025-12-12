@@ -2,19 +2,19 @@
 import React from 'react';
 import { useAppStore } from '../../store/appStore';
 import { View } from '../../types';
-import { LayoutDashboard, Users, BookMarked, Target, Command, Map, PieChart, Presentation, Megaphone, Gamepad2, Eye, Mail, MessageCircle, LogOut, FlaskConical, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Users, BookMarked, Target, Command, Map, PieChart, Presentation, Megaphone, Gamepad2, Eye, Mail, MessageCircle, LogOut, FlaskConical, Briefcase, Settings, Database } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const Navigation: React.FC = () => {
   const { currentView, setView, setVisionModalOpen, logout } = useAppStore();
 
   const navItems = [
-    { id: View.DASHBOARD, label: 'Command', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { id: View.DASHBOARD, label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: View.LEAD_INTERCEPTOR, label: 'Leads', icon: <MessageCircle className="w-5 h-5" /> },
     { id: View.COMMUNICATIONS, label: 'Inbox', icon: <Mail className="w-5 h-5" /> },
-    { id: View.FEATURE_LAB, label: 'R&D', icon: <FlaskConical className="w-5 h-5" /> },
+    { id: View.FEATURE_LAB, label: 'Research', icon: <FlaskConical className="w-5 h-5" /> },
     { id: View.MARKETING, label: 'Growth', icon: <Megaphone className="w-5 h-5" /> },
-    { id: View.SIMULATOR, label: 'Wargame', icon: <Gamepad2 className="w-5 h-5" /> },
+    { id: View.SIMULATOR, label: 'Simulator', icon: <Gamepad2 className="w-5 h-5" /> },
     { id: View.LOCAL_INTEL, label: 'Map', icon: <Map className="w-5 h-5" /> },
     { id: View.COMPETITORS, label: 'Intel', icon: <Target className="w-5 h-5" /> },
     { id: View.FINANCE, label: 'Finance', icon: <PieChart className="w-5 h-5" /> },
@@ -35,7 +35,7 @@ export const Navigation: React.FC = () => {
         <button 
           onClick={() => setVisionModalOpen(true)}
           className="mb-6 p-3 rounded-xl bg-tech-purple text-white shadow-lg shadow-tech-purple/30 hover:scale-105 transition-all group relative"
-          title="Omniscient Vision"
+          title="Upload Visual Context"
         >
           <Eye className="w-5 h-5" />
           <div className="absolute left-14 top-2 bg-ink-950 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wide opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 z-50 whitespace-nowrap">
@@ -49,7 +49,13 @@ export const Navigation: React.FC = () => {
           ))}
         </div>
 
-        <div className="mt-4 pt-4 border-t border-slate-100 w-full flex justify-center">
+        <div className="mt-4 pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">
+           <button className="p-3 rounded-xl text-ink-400 hover:text-ink-900 transition-colors relative group">
+              <Database className="w-5 h-5" />
+              <div className="absolute left-14 top-2 bg-ink-950 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wide opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 z-50 whitespace-nowrap">
+                Data & Integrations
+              </div>
+           </button>
            <button onClick={logout} className="p-3 rounded-xl text-ink-400 hover:text-rose-500 transition-colors"><LogOut className="w-5 h-5" /></button>
         </div>
       </div>
@@ -95,4 +101,3 @@ const MobileNavItem: React.FC<{ item: any, isActive: boolean, onClick: () => voi
       <span className="text-[9px] font-bold uppercase tracking-tight">{item.label}</span>
    </button>
 );
-    
